@@ -1,0 +1,15 @@
+@mixin pip-base {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+@mixin pip-label {
+  font-family: var(--fm);
+  font-size: 0.5rem;
+  color: var(--txt2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}

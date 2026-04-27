@@ -1,0 +1,76 @@
+.content {
+  max-width: 75rem;
+  margin: 0 auto;
+  padding: 0.75rem 0.75rem calc(4.25rem + env(safe-area-inset-bottom));
+}
+
+.grid {
+  column-count: 2;
+  column-gap: 0.5rem;
+
+  @media (max-width: 30rem) {
+    column-count: 1;
+  }
+}
+
+.gridItem {
+  break-inside: avoid;
+  margin-bottom: 0.5rem;
+}
+
+// Cluster occupies a single grid cell — same width as any card.
+// Cards inside share a tinted background with a colored left rail.
+.cluster {
+  border-left: 0.1875rem solid transparent; // color set via inline style
+  overflow: hidden;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 1.25rem;
+  text-align: center;
+  gap: 0.625rem;
+}
+
+.emptyTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt3);
+}
+
+.emptySub {
+  font-family: var(--fm);
+  font-size: 0.6875rem;
+  color: var(--txt3);
+  max-width: 17.5rem;
+  line-height: 1.6;
+}
+
+.dragGhost {
+  background: var(--card);
+  border: 0.0625rem solid var(--accent);
+  padding: 0.625rem 0.75rem;
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dragGhostName {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.dragGhostCount {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--txt3);
+}
