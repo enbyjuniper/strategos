@@ -1,27 +1,5 @@
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 100;
-  display: flex;
-  align-items: flex-end;
-}
-
-.sheet {
-  width: 100%;
-  background: var(--panel);
-  border-top: 0.0625rem solid var(--border);
-  padding: 0.5rem 1rem calc(1.25rem + env(safe-area-inset-bottom));
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.handle {
-  width: 2.25rem;
-  height: 0.1875rem;
-  background: var(--border);
-  border-radius: 0.125rem;
-  margin: 0 auto 0.875rem;
+.content {
+  padding: 0 1rem 0;
 }
 
 .title {
@@ -142,25 +120,38 @@
   display: none;
 }
 
-.sliderRow {
+.urlRow {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
+  gap: 0.375rem;
 }
 
-.sliderLabel {
-  font-family: var(--fm);
-  font-size: 0.5625rem;
-  color: var(--txt3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  flex-shrink: 0;
-}
-
-.slider {
+.urlInput {
   flex: 1;
-  accent-color: var(--accent);
+  padding: 0.5rem 0.625rem;
+  background: transparent;
+  border: 0.0625rem solid var(--border);
+  color: var(--txt);
+  font-family: var(--fm);
+  font-size: 0.6875rem;
+  min-width: 0;
+
+  &::placeholder { color: var(--txt3); }
+  &:focus { outline: none; border-color: var(--accent-dim); }
+}
+
+.urlBtn {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: 0.0625rem solid var(--border);
+  color: var(--txt2);
+  font-family: var(--ff);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s;
+
+  &:hover { background: rgba(255, 255, 255, 0.04); }
 }
 
 .empty {

@@ -1,5 +1,4 @@
-import type { Unit, Phase, ImageTransform } from '../types';
-import { DEFAULT_IMAGE_TRANSFORM } from '../types';
+import type { Unit, Phase } from '../types';
 import { getInv, getFNP, isKeyword } from '../utils/abilities';
 import { WeaponBlock } from './WeaponBlock';
 import styles from './UnitCard.module.scss';
@@ -33,12 +32,12 @@ interface Props {
   unit: Unit;
   phase: Phase;
   onOpenPicker?: () => void;
+  onOpenDatasheet?: () => void;
   nested?: boolean;
   imageUrl?: string;
-  imageTransform?: ImageTransform;
 }
 
-export function UnitCard({ unit, phase, onOpenPicker, nested, imageUrl, imageTransform = DEFAULT_IMAGE_TRANSFORM }: Props) {
+export function UnitCard({ unit, phase, onOpenPicker, onOpenDatasheet, nested, imageUrl }: Props) {
   if (!unit.stats) return null;
 
   const inv = getInv(unit.ownAbilities);
@@ -67,9 +66,6 @@ export function UnitCard({ unit, phase, onOpenPicker, nested, imageUrl, imageTra
           <img
             src={imageUrl}
             className={styles.unitImage}
-            style={{
-              transform: `translate(${imageTransform.x}%, ${imageTransform.y}%) scale(${imageTransform.zoom})`,
-            }}
             alt=""
             aria-hidden="true"
           />
@@ -88,6 +84,16 @@ export function UnitCard({ unit, phase, onOpenPicker, nested, imageUrl, imageTra
             >
               {unitType}
             </span>
+          )}
+          {onOpenDatasheet && (
+            <button
+              className={styles.datasheetBtn}
+              onPointerDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); onOpenDatasheet(); }}
+              title="View Wahapedia datasheet"
+            >
+              ⊟
+            </button>
           )}
           {onOpenPicker && (
             <button

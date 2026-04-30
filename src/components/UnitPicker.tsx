@@ -1,5 +1,6 @@
-import { useRef } from 'react';
-import type { Army, Attachments, ImageTransform } from '../types';
+import { useRef, useState, useEffect } from 'react';
+import type { Army, Attachments } from '../types';
+import { BottomSheet } from './BottomSheet';
 import styles from './UnitPicker.module.scss';
 
 interface Props {
@@ -7,19 +8,24 @@ interface Props {
   army: Army;
   attachments: Attachments;
   imageUrl?: string;
-  imageTransform: ImageTransform;
   onClose: () => void;
   onDissolve: () => void;
   onDetach: () => void;
   onReattach: (newPrimaryId: string) => void;
   onAttach: (primaryId: string) => void;
   onSetImage: (url: string | null) => void;
-  onSetImageTransform: (t: ImageTransform) => void;
 }
 
-export function UnitPicker({ unitId, army, attachments, imageUrl, imageTransform, onClose, onDissolve, onDetach, onReattach, onAttach, onSetImage, onSetImageTransform }: Props) {
+export function UnitPicker({ unitId, army, attachments, imageUrl, onClose, onDissolve, onDetach, onReattach, onAttach, onSetImage }: Props) {
   const unit = army.units.find(u => u.id === unitId);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isRemoteUrl = imageUrl && !imageUrl.startsWith('data:');
+  const [urlInput, setUrlInput] = useState(isRemoteUrl ? imageUrl : '');
+
+  useEffect(() => {
+    setUrlInput(imageUrl && !imageUrl.startsWith('data:') ? imageUrl : '');
+  }, [imageUrl]);
+
   if (!unit) return null;
 
   function handleImageFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -45,6 +51,11 @@ export function UnitPicker({ unitId, army, attachments, imageUrl, imageTransform
     reader.readAsDataURL(file);
   }
 
+  function handleUrlSubmit() {
+    const trimmed = urlInput.trim();
+    if (trimmed) onSetImage(trimmed);
+  }
+
   const allAttachedIds = new Set(Object.values(attachments).flat());
   const isHost = !!(attachments[unitId]?.length);
   const primaryId = Object.entries(attachments).find(([, ids]) => ids.includes(unitId))?.[0] ?? null;
@@ -56,9 +67,8 @@ export function UnitPicker({ unitId, army, attachments, imageUrl, imageTransform
   );
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.sheet} onClick={e => e.stopPropagation()}>
-        <div className={styles.handle} />
+    <BottomSheet onClose={onClose}>
+      <div className={styles.content}>
         <div className={styles.title}>{unit.name}</div>
 
         <div className={styles.section}>Unit image</div>
@@ -71,54 +81,23 @@ export function UnitPicker({ unitId, army, attachments, imageUrl, imageTransform
             onChange={handleImageFile}
           />
           <button className={styles.action} onClick={() => fileInputRef.current?.click()}>
-            {imageUrl ? 'Replace image' : 'Set image'}
+            {imageUrl ? 'Replace image (file)' : 'Set image (file)'}
           </button>
+          <div className={styles.urlRow}>
+            <input
+              type="url"
+              className={styles.urlInput}
+              placeholder="Or paste image URL…"
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleUrlSubmit(); }}
+            />
+            <button className={styles.urlBtn} onClick={handleUrlSubmit}>Set</button>
+          </div>
           {imageUrl && (
-            <>
-              <button className={`${styles.action} ${styles.danger}`} onClick={() => onSetImage(null)}>
-                Remove image
-              </button>
-              {(() => {
-                const maxPan = Math.round(50 * (imageTransform.zoom - 1));
-                const clamp = (v: number) => Math.max(-maxPan, Math.min(maxPan, v));
-                return (
-                  <>
-                    <div className={styles.sliderRow}>
-                      <span className={styles.sliderLabel}>Zoom</span>
-                      <input
-                        type="range" min={1} max={3} step={0.05}
-                        value={imageTransform.zoom}
-                        className={styles.slider}
-                        onChange={e => {
-                          const zoom = Number(e.target.value);
-                          const mp = Math.round(50 * (zoom - 1));
-                          const c = (v: number) => Math.max(-mp, Math.min(mp, v));
-                          onSetImageTransform({ zoom, x: c(imageTransform.x), y: c(imageTransform.y) });
-                        }}
-                      />
-                    </div>
-                    <div className={styles.sliderRow}>
-                      <span className={styles.sliderLabel}>Left / Right</span>
-                      <input
-                        type="range" min={-maxPan} max={maxPan}
-                        value={clamp(imageTransform.x)}
-                        className={styles.slider}
-                        onChange={e => onSetImageTransform({ ...imageTransform, x: Number(e.target.value) })}
-                      />
-                    </div>
-                    <div className={styles.sliderRow}>
-                      <span className={styles.sliderLabel}>Top / Bottom</span>
-                      <input
-                        type="range" min={-maxPan} max={maxPan}
-                        value={clamp(imageTransform.y)}
-                        className={styles.slider}
-                        onChange={e => onSetImageTransform({ ...imageTransform, y: Number(e.target.value) })}
-                      />
-                    </div>
-                  </>
-                );
-              })()}
-            </>
+            <button className={`${styles.action} ${styles.danger}`} onClick={() => onSetImage(null)}>
+              Remove image
+            </button>
           )}
         </div>
 
@@ -153,7 +132,7 @@ export function UnitPicker({ unitId, army, attachments, imageUrl, imageTransform
           )
         )}
       </div>
-    </div>
+    </BottomSheet>
   );
 }
 

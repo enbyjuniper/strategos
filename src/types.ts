@@ -49,11 +49,3 @@ export interface Army {
 }
 
 export type Attachments = Record<string, string[]>;
-
-export interface ImageTransform {
-  x: number;   // object-position-x, 0–100
-  y: number;   // object-position-y, 0–100
-  zoom: number; // scale factor, 1–3
-}
-
-export const DEFAULT_IMAGE_TRANSFORM: ImageTransform = { x: 0, y: 0, zoom: 1 };

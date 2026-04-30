@@ -5,8 +5,7 @@ import {
 } from '@dnd-kit/core';
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import type { Army, Phase, Attachments, ImageTransform } from './types';
-import { DEFAULT_IMAGE_TRANSFORM } from './types';
+import type { Army, Phase, Attachments } from './types';
 import { parseNR } from './utils/parseNR';
 import type { NRJson } from './utils/parseNR';
 import { Header } from './components/Header';
@@ -14,6 +13,7 @@ import { PhaseTabs } from './components/PhaseTabs';
 import { UnitCard } from './components/UnitCard';
 import { SortableSlot } from './components/SortableSlot';
 import { UnitPicker } from './components/UnitPicker';
+import { DatasheetDrawer } from './components/DatasheetDrawer';
 import styles from './App.module.scss';
 
 const CLUSTER_COLORS = [
@@ -50,8 +50,8 @@ function App() {
   const [unitOrder, setUnitOrder] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [datasheetUnit, setDatasheetUnit] = useState<string | null>(null);
   const [unitImages, setUnitImages] = useState<Record<string, string>>({});
-  const [unitImageTransforms, setUnitImageTransforms] = useState<Record<string, ImageTransform>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -68,8 +68,6 @@ function App() {
         if (att) setAttachments(JSON.parse(att));
         const imgs = localStorage.getItem('strategos_images');
         if (imgs) setUnitImages(JSON.parse(imgs));
-        const imgPos = localStorage.getItem('strategos_image_transforms');
-        if (imgPos) setUnitImageTransforms(JSON.parse(imgPos));
         setUnitOrder(buildOrder(parsed.units.map(u => u.id), localStorage.getItem('strategos_order')));
         setHeaderOpen(false);
       }
@@ -79,7 +77,6 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem('strategos_attachments', JSON.stringify(attachments)); } catch {}
   }, [attachments]);
-
 
   useEffect(() => {
     if (unitOrder.length > 0) {
@@ -174,14 +171,6 @@ function App() {
     });
   }
 
-  function setImageTransform(unitId: string, transform: ImageTransform) {
-    setUnitImageTransforms(prev => {
-      const next = { ...prev, [unitId]: transform };
-      try { localStorage.setItem('strategos_image_transforms', JSON.stringify(next)); } catch {}
-      return next;
-    });
-  }
-
   function dissolve(primaryId: string) {
     setAttachments(prev => { const next = { ...prev }; delete next[primaryId]; return next; });
     setPickerFor(null);
@@ -233,9 +222,9 @@ function App() {
                   return (
                     <SortableSlot key={id} id={id} className={styles.gridItem}>
                       <div className={styles.cluster} style={{ borderLeftColor: color.line, background: color.bg }}>
-                        <UnitCard unit={unit} phase={phase} nested imageUrl={unitImages[unit.id]} imageTransform={unitImageTransforms[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} />
+                        <UnitCard unit={unit} phase={phase} nested imageUrl={unitImages[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} onOpenDatasheet={() => setDatasheetUnit(unit.name)} />
                         {attached.map(u => (
-                          <UnitCard key={u.id} unit={u} phase={phase} nested imageUrl={unitImages[u.id]} imageTransform={unitImageTransforms[u.id]} onOpenPicker={() => setPickerFor(u.id)} />
+                          <UnitCard key={u.id} unit={u} phase={phase} nested imageUrl={unitImages[u.id]} onOpenPicker={() => setPickerFor(u.id)} onOpenDatasheet={() => setDatasheetUnit(u.name)} />
                         ))}
                       </div>
                     </SortableSlot>
@@ -244,7 +233,7 @@ function App() {
 
                 return (
                   <SortableSlot key={id} id={id} className={styles.gridItem}>
-                    <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} imageTransform={unitImageTransforms[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} />
+                    <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} onOpenDatasheet={() => setDatasheetUnit(unit.name)} />
                   </SortableSlot>
                 );
               })}
@@ -264,20 +253,22 @@ function App() {
       </div>
       <PhaseTabs phase={phase} onChange={setPhase} />
 
+      {datasheetUnit && (
+        <DatasheetDrawer unitName={datasheetUnit} onClose={() => setDatasheetUnit(null)} />
+      )}
+
       {pickerFor && (
         <UnitPicker
           unitId={pickerFor}
           army={army}
           attachments={attachments}
           imageUrl={unitImages[pickerFor]}
-          imageTransform={unitImageTransforms[pickerFor] ?? DEFAULT_IMAGE_TRANSFORM}
           onClose={() => setPickerFor(null)}
           onDissolve={() => dissolve(pickerFor)}
           onDetach={() => detach(pickerFor)}
           onReattach={newPrimaryId => reattach(pickerFor, newPrimaryId)}
           onAttach={primaryId => attachTo(pickerFor, primaryId)}
           onSetImage={url => setImage(pickerFor, url)}
-          onSetImageTransform={t => setImageTransform(pickerFor, t)}
         />
       )}
     </>

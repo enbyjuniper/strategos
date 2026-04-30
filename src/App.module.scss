@@ -5,12 +5,9 @@
 }
 
 .grid {
-  column-count: 2;
+  column-width: 20rem;
+  column-count: auto;
   column-gap: 0.5rem;
-
-  @media (max-width: 30rem) {
-    column-count: 1;
-  }
 }
 
 .gridItem {
