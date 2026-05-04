@@ -1,5 +1,7 @@
+import { LinkIcon } from '@phosphor-icons/react';
 import type { Unit, Phase } from '../types';
-import { getInv, getFNP, isKeyword } from '../utils/abilities';
+import { getInv, getFNP, hasFightFirst, isKeyword } from '../utils/abilities';
+import { renderRichText } from '../utils/richText';
 import { WeaponBlock } from './WeaponBlock';
 import styles from './UnitCard.module.scss';
 
@@ -15,7 +17,8 @@ const TYPE_COLOR: Record<string, string> = {
   Titanic:   '#ff5540',
 };
 const MOVE_TAG_PREFIXES = ['Fly', 'Deep Strike', 'Infiltrators', 'Scouts', 'Walker'];
-const DUR_TAG_PREFIXES = ['Deadly Demise', 'Stealth', 'Lone Operative'];
+const DUR_TAG_PREFIXES = ['Deadly Demise'];
+const DUR_OVERLAY_PREFIXES = ['Lone Operative', 'Stealth'];
 
 function findTags(prefixes: string[], pool: string[]): string[] {
   return prefixes.flatMap(prefix => {
@@ -32,35 +35,49 @@ interface Props {
   unit: Unit;
   phase: Phase;
   onOpenPicker?: () => void;
-  onOpenDatasheet?: () => void;
   nested?: boolean;
   imageUrl?: string;
+  acted?: boolean;
+  onToggleActed?: () => void;
 }
 
-export function UnitCard({ unit, phase, onOpenPicker, onOpenDatasheet, nested, imageUrl }: Props) {
+export function UnitCard({ unit, phase, onOpenPicker, nested, imageUrl, acted, onToggleActed }: Props) {
   if (!unit.stats) return null;
 
-  const inv = getInv(unit.ownAbilities);
-  const fnp = getFNP(unit.ownAbilities);
-  const allAbilities = [...unit.ownAbilities, ...unit.ruleAbilities]
-    .filter((a, i, arr) => arr.findIndex(x => x.name === a.name) === i);
-  const kwAbilities = allAbilities.filter(a => isKeyword(a.name));
-  const regAbilities = allAbilities.filter(a => !isKeyword(a.name));
+  const inv = getInv(unit.abilities);
+  const fnp = getFNP(unit.abilities);
+  const kwAbilities = unit.abilities.filter(a => isKeyword(a.name));
+  const regAbilities = unit.abilities.filter(a => !isKeyword(a.name));
 
   const unitType = unit.keywords.find(k => UNIT_TYPES.has(k));
-  const tagPool = [...unit.keywords, ...allAbilities.map(a => a.name)];
+  const tagPool = [...unit.keywords, ...unit.abilities.map(a => a.name), ...unit.rules.map(a => a.name)];
   const moveTags = findTags(MOVE_TAG_PREFIXES, tagPool);
   const durTags = findTags(DUR_TAG_PREFIXES, tagPool);
+  const durOverlayTags = findTags(DUR_OVERLAY_PREFIXES, tagPool);
+  const fightFirst = hasFightFirst(unit.rules);
 
   const cardClass = [
     styles.card,
     unit.isChar ? styles.char : '',
     nested ? styles.nested : '',
     imageUrl ? styles.hasImage : '',
+    fightFirst && phase === 'melee' ? styles.hasCornerOverlay : '',
+    durOverlayTags.length > 0 && phase === 'dur' ? styles.hasCornerOverlay : '',
+    acted ? styles.acted : '',
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={cardClass}>
+    <div className={cardClass} onClick={onToggleActed}>
+      {fightFirst && phase === 'melee' && (
+        <div className={`${styles.cornerOverlay} ${styles.meleeOverlay}`}>
+          <span>Fights First</span>
+        </div>
+      )}
+      {durOverlayTags.length > 0 && phase === 'dur' && (
+        <div className={`${styles.cornerOverlay} ${styles.durOverlay}`}>
+          {durOverlayTags.map(t => <span key={t}>{t}</span>)}
+        </div>
+      )}
       {imageUrl && (
         <div className={styles.imageWrapper}>
           <img
@@ -73,7 +90,9 @@ export function UnitCard({ unit, phase, onOpenPicker, onOpenDatasheet, nested, i
       )}
       <div className={styles.cardContent}>
       <div className={styles.top}>
-        <div className={`${styles.name}${unit.isChar ? ` ${styles.nameChar}` : ''}`}>
+        <div
+          className={`${styles.name}${unit.isChar ? ` ${styles.nameChar}` : ''}`}
+        >
           {unit.name}
         </div>
         <div className={styles.topRight}>
@@ -85,24 +104,15 @@ export function UnitCard({ unit, phase, onOpenPicker, onOpenDatasheet, nested, i
               {unitType}
             </span>
           )}
-          {onOpenDatasheet && (
-            <button
-              className={styles.datasheetBtn}
-              onPointerDown={e => e.stopPropagation()}
-              onClick={e => { e.stopPropagation(); onOpenDatasheet(); }}
-              title="View Wahapedia datasheet"
-            >
-              ⊟
-            </button>
-          )}
           {onOpenPicker && (
             <button
               className={styles.attachBtn}
-              onPointerDown={e => e.stopPropagation()}
-              onClick={e => { e.stopPropagation(); onOpenPicker(); }}
+              onPointerDown={e => { if (!acted) e.stopPropagation(); }}
+              onClick={e => { if (!acted) { e.stopPropagation(); onOpenPicker(); } }}
               title="Link / unlink unit"
+              disabled={acted}
             >
-              ⊕
+              <LinkIcon size={16} weight="bold" />
             </button>
           )}
         </div>
@@ -186,15 +196,21 @@ export function UnitCard({ unit, phase, onOpenPicker, onOpenDatasheet, nested, i
               ))}
             </div>
           )}
+          {unit.enhancement && (
+            <div className={styles.enhancement}>
+              <div className={styles.enhancementName}>{unit.enhancement.name}</div>
+              <div className={styles.abilDesc}>{renderRichText(unit.enhancement.desc)}</div>
+            </div>
+          )}
           <div className={styles.abilities}>
             {regAbilities.length > 0 ? (
               regAbilities.map((a, i) => (
                 <div key={`${a.name}-${i}`}>
                   <div className={styles.abilName}>{a.name}</div>
-                  <div className={styles.abilDesc}>{a.desc}</div>
+                  <div className={styles.abilDesc}>{renderRichText(a.desc)}</div>
                 </div>
               ))
-            ) : kwAbilities.length === 0 ? (
+            ) : kwAbilities.length === 0 && !unit.enhancement ? (
               <div className={styles.nodata}>no listed abilities</div>
             ) : null}
           </div>

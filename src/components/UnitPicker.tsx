@@ -1,5 +1,6 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import type { Army, Attachments } from '../types';
+import { isLeader } from '../utils/abilities';
 import { BottomSheet } from './BottomSheet';
 import styles from './UnitPicker.module.scss';
 
@@ -20,11 +21,13 @@ export function UnitPicker({ unitId, army, attachments, imageUrl, onClose, onDis
   const unit = army.units.find(u => u.id === unitId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isRemoteUrl = imageUrl && !imageUrl.startsWith('data:');
+  const [prevImageUrl, setPrevImageUrl] = useState(imageUrl);
   const [urlInput, setUrlInput] = useState(isRemoteUrl ? imageUrl : '');
 
-  useEffect(() => {
+  if (imageUrl !== prevImageUrl) {
+    setPrevImageUrl(imageUrl);
     setUrlInput(imageUrl && !imageUrl.startsWith('data:') ? imageUrl : '');
-  }, [imageUrl]);
+  }
 
   if (!unit) return null;
 
@@ -60,7 +63,18 @@ export function UnitPicker({ unitId, army, attachments, imageUrl, onClose, onDis
   const isHost = !!(attachments[unitId]?.length);
   const primaryId = Object.entries(attachments).find(([, ids]) => ids.includes(unitId))?.[0] ?? null;
   const mode: 'free' | 'host' | 'attached' = isHost ? 'host' : primaryId ? 'attached' : 'free';
-  const available = army.units.filter(u =>
+  const unitIsLeader = isLeader(unit);
+
+  // Units a Leader can pull into their cluster: free units not already hosting their own cluster
+  const availableForCluster = army.units.filter(u =>
+    u.id !== unitId &&
+    !allAttachedIds.has(u.id) &&
+    !attachments[u.id]?.length
+  );
+
+  // Units an attached unit can re-join: only Leader units not themselves attached elsewhere
+  const availableForReattach = army.units.filter(u =>
+    isLeader(u) &&
     u.id !== unitId &&
     !allAttachedIds.has(u.id) &&
     u.id !== primaryId
@@ -101,6 +115,17 @@ export function UnitPicker({ unitId, army, attachments, imageUrl, onClose, onDis
           )}
         </div>
 
+        {(mode === 'free' || mode === 'host') && unitIsLeader && (
+          availableForCluster.length > 0 ? (
+            <>
+              <div className={styles.section}>Add to cluster</div>
+              <UnitList units={availableForCluster} attachments={attachments} onSelect={onAttach} />
+            </>
+          ) : (
+            <div className={styles.empty}>No available units to add</div>
+          )
+        )}
+
         {mode === 'host' && (
           <button className={`${styles.action} ${styles.danger}`} onClick={onDissolve}>
             Dissolve cluster
@@ -112,24 +137,13 @@ export function UnitPicker({ unitId, army, attachments, imageUrl, onClose, onDis
             <button className={`${styles.action} ${styles.danger}`} onClick={onDetach}>
               Detach from {army.units.find(u => u.id === primaryId)?.name}
             </button>
-            {available.length > 0 && (
+            {availableForReattach.length > 0 && (
               <>
                 <div className={styles.section}>Re-attach to</div>
-                <UnitList units={available} attachments={attachments} onSelect={onReattach} />
+                <UnitList units={availableForReattach} attachments={attachments} onSelect={onReattach} />
               </>
             )}
           </>
-        )}
-
-        {mode === 'free' && (
-          available.length > 0 ? (
-            <>
-              <div className={styles.section}>Link with</div>
-              <UnitList units={available} attachments={attachments} onSelect={onAttach} />
-            </>
-          ) : (
-            <div className={styles.empty}>No available units to link</div>
-          )
         )}
       </div>
     </BottomSheet>

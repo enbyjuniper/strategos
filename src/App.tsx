@@ -1,19 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  DndContext, closestCenter, PointerSensor, TouchSensor,
+  DndContext, closestCenter, MouseSensor, TouchSensor,
   DragOverlay, useSensor, useSensors,
 } from '@dnd-kit/core';
-import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import type { DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove } from '@dnd-kit/sortable';
 import type { Army, Phase, Attachments } from './types';
 import { parseNR } from './utils/parseNR';
+import { isLeader } from './utils/abilities';
 import type { NRJson } from './utils/parseNR';
 import { Header } from './components/Header';
 import { PhaseTabs } from './components/PhaseTabs';
 import { UnitCard } from './components/UnitCard';
+import { UnitSlot } from './components/UnitSlot';
 import { SortableSlot } from './components/SortableSlot';
 import { UnitPicker } from './components/UnitPicker';
-import { DatasheetDrawer } from './components/DatasheetDrawer';
 import styles from './App.module.scss';
 
 const CLUSTER_COLORS = [
@@ -37,50 +38,96 @@ function buildOrder(unitIds: string[], saved: string | null): string[] {
       const valid = parsed.filter(id => unitIds.includes(id));
       const missing = unitIds.filter(id => !valid.includes(id));
       return [...valid, ...missing];
-    } catch {}
+    } catch { /* ignore */ }
   }
   return [...unitIds];
 }
 
 function App() {
-  const [army, setArmy] = useState<Army | null>(null);
+  const [army, setArmy] = useState<Army | null>(() => {
+    try {
+      const saved = localStorage.getItem('strategos_list');
+      return saved ? parseNR(JSON.parse(saved) as NRJson) : null;
+    } catch { return null; }
+  });
   const [phase, setPhase] = useState<Phase>('move');
-  const [headerOpen, setHeaderOpen] = useState(true);
-  const [attachments, setAttachments] = useState<Attachments>({});
-  const [unitOrder, setUnitOrder] = useState<string[]>([]);
+  const [headerOpen, setHeaderOpen] = useState(() => !localStorage.getItem('strategos_list'));
+  const [attachments, setAttachments] = useState<Attachments>(() => {
+    try {
+      const saved = localStorage.getItem('strategos_attachments');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [unitOrder, setUnitOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('strategos_list');
+      if (!saved) return [];
+      const parsed = parseNR(JSON.parse(saved) as NRJson);
+      return buildOrder(parsed.units.map(u => u.id), localStorage.getItem('strategos_order'));
+    } catch { return []; }
+  });
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
-  const [datasheetUnit, setDatasheetUnit] = useState<string | null>(null);
-  const [unitImages, setUnitImages] = useState<Record<string, string>>({});
+  const [unitImages, setUnitImages] = useState<Record<string, string>>(() => {
+    try {
+      const imgs = localStorage.getItem('strategos_images');
+      return imgs ? JSON.parse(imgs) : {};
+    } catch { return {}; }
+  });
+  // Tracks acted units; tagged with phase+army so stale toggles are discarded on phase/army change
+  const [actedStore, setActedStore] = useState<{ phase: Phase; army: Army | null; ids: Set<string> }>({
+    phase: 'move',
+    army: null,
+    ids: new Set(),
+  });
+
+  const actedIds = useMemo(() => {
+    if (!army) return new Set<string>();
+    const auto = new Set(
+      army.units
+        .filter(u => (phase === 'shoot' && u.ranged.length === 0) || (phase === 'melee' && u.melee.length === 0))
+        .map(u => u.id)
+    );
+    if (actedStore.phase !== phase || actedStore.army !== army) return auto;
+    return actedStore.ids;
+  }, [army, phase, actedStore]);
+
+  function getClusterIds(unitId: string): string[] {
+    if (attachments[unitId]?.length > 0) return [unitId, ...attachments[unitId]];
+    for (const [primaryId, attached] of Object.entries(attachments)) {
+      if (attached.includes(unitId)) return [primaryId, ...attached];
+    }
+    return [unitId];
+  }
+
+  function toggleActed(unitId: string) {
+    setActedStore(prev => {
+      const autoIds = army?.units
+        .filter(u => (phase === 'shoot' && u.ranged.length === 0) || (phase === 'melee' && u.melee.length === 0))
+        .map(u => u.id) ?? [];
+      const base = (prev.phase === phase && prev.army === army)
+        ? new Set(prev.ids)
+        : new Set<string>(autoIds);
+      const ids = getClusterIds(unitId);
+      if (base.has(unitId)) ids.forEach(id => base.delete(id));
+      else ids.forEach(id => base.add(id));
+      return { phase, army, ids: base };
+    });
+  }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   );
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('strategos_list');
-      if (saved) {
-        const parsed = parseNR(JSON.parse(saved) as NRJson);
-        setArmy(parsed);
-        const att = localStorage.getItem('strategos_attachments');
-        if (att) setAttachments(JSON.parse(att));
-        const imgs = localStorage.getItem('strategos_images');
-        if (imgs) setUnitImages(JSON.parse(imgs));
-        setUnitOrder(buildOrder(parsed.units.map(u => u.id), localStorage.getItem('strategos_order')));
-        setHeaderOpen(false);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    try { localStorage.setItem('strategos_attachments', JSON.stringify(attachments)); } catch {}
+    try { localStorage.setItem('strategos_attachments', JSON.stringify(attachments)); } catch { /* ignore */ }
   }, [attachments]);
 
   useEffect(() => {
     if (unitOrder.length > 0) {
-      try { localStorage.setItem('strategos_order', JSON.stringify(unitOrder)); } catch {}
+      try { localStorage.setItem('strategos_order', JSON.stringify(unitOrder)); } catch { /* ignore */ }
     }
   }, [unitOrder]);
 
@@ -92,7 +139,7 @@ function App() {
       setUnitOrder(parsed.units.map(u => u.id));
       setPickerFor(null);
       setHeaderOpen(false);
-      try { localStorage.setItem('strategos_list', raw); } catch {}
+      try { localStorage.setItem('strategos_list', raw); } catch { /* ignore */ }
     } catch (err) {
       alert('Could not parse JSON: ' + (err as Error).message);
     }
@@ -102,10 +149,21 @@ function App() {
 
   function handleDragStart(e: DragStartEvent) {
     setActiveId(e.active.id as string);
+    setOverId(null);
+  }
+
+  function handleDragOver(e: DragOverEvent) {
+    setOverId(e.over ? String(e.over.id) : null);
+  }
+
+  function handleDragCancel() {
+    setActiveId(null);
+    setOverId(null);
   }
 
   function handleDragEnd(e: DragEndEvent) {
     setActiveId(null);
+    setOverId(null);
     const { active, over } = e;
     if (!over || active.id === over.id) return;
 
@@ -166,7 +224,7 @@ function App() {
       const next = { ...prev };
       if (url) next[unitId] = url;
       else delete next[unitId];
-      try { localStorage.setItem('strategos_images', JSON.stringify(next)); } catch {}
+      try { localStorage.setItem('strategos_images', JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
   }
@@ -197,6 +255,14 @@ function App() {
   const visibleIds = unitOrder.filter(id => !allAttachedIds.has(id) && army.units.some(u => u.id === id));
   const activeUnit = activeId ? army.units.find(u => u.id === activeId) ?? null : null;
 
+  const activeIdx = activeId ? visibleIds.indexOf(activeId) : -1;
+  const overIdx = overId ? visibleIds.indexOf(overId) : -1;
+
+  function indicatorFor(id: string): 'top' | 'bottom' | undefined {
+    if (!overId || id !== overId || activeIdx === -1 || overIdx === -1 || activeIdx === overIdx) return undefined;
+    return activeIdx > overIdx ? 'top' : 'bottom';
+  }
+
   return (
     <>
       <Header army={army} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} onRawJson={handleRawJson} />
@@ -205,9 +271,11 @@ function App() {
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
-          <SortableContext items={visibleIds} strategy={rectSortingStrategy}>
+          <SortableContext items={visibleIds} strategy={() => null}>
             <div className={styles.grid}>
               {visibleIds.map(id => {
                 const unit = army.units.find(u => u.id === id);
@@ -218,22 +286,28 @@ function App() {
                   .filter(Boolean) as typeof army.units;
 
                 if (attached.length > 0) {
+                  const sortedAttached = [
+                    ...attached.filter(u => isLeader(u)),
+                    ...attached.filter(u => !isLeader(u)),
+                  ];
                   const color = colorForCluster(unit.id);
                   return (
-                    <SortableSlot key={id} id={id} className={styles.gridItem}>
-                      <div className={styles.cluster} style={{ borderLeftColor: color.line, background: color.bg }}>
-                        <UnitCard unit={unit} phase={phase} nested imageUrl={unitImages[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} onOpenDatasheet={() => setDatasheetUnit(unit.name)} />
-                        {attached.map(u => (
-                          <UnitCard key={u.id} unit={u} phase={phase} nested imageUrl={unitImages[u.id]} onOpenPicker={() => setPickerFor(u.id)} onOpenDatasheet={() => setDatasheetUnit(u.name)} />
+                    <SortableSlot key={id} id={id} className={styles.gridItem} indicator={indicatorFor(id)}>
+                      <UnitSlot acted={actedIds.has(unit.id)} cluster={color}>
+                        <UnitCard unit={unit} phase={phase} nested imageUrl={unitImages[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} />
+                        {sortedAttached.map(u => (
+                          <UnitCard key={u.id} unit={u} phase={phase} nested imageUrl={unitImages[u.id]} onOpenPicker={() => setPickerFor(u.id)} acted={actedIds.has(u.id)} onToggleActed={() => toggleActed(u.id)} />
                         ))}
-                      </div>
+                      </UnitSlot>
                     </SortableSlot>
                   );
                 }
 
                 return (
-                  <SortableSlot key={id} id={id} className={styles.gridItem}>
-                    <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} onOpenDatasheet={() => setDatasheetUnit(unit.name)} />
+                  <SortableSlot key={id} id={id} className={styles.gridItem} indicator={indicatorFor(id)}>
+                    <UnitSlot acted={actedIds.has(unit.id)}>
+                      <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} />
+                    </UnitSlot>
                   </SortableSlot>
                 );
               })}
@@ -253,10 +327,6 @@ function App() {
       </div>
       <PhaseTabs phase={phase} onChange={setPhase} />
 
-      {datasheetUnit && (
-        <DatasheetDrawer unitName={datasheetUnit} onClose={() => setDatasheetUnit(null)} />
-      )}
-
       {pickerFor && (
         <UnitPicker
           unitId={pickerFor}
@@ -267,7 +337,7 @@ function App() {
           onDissolve={() => dissolve(pickerFor)}
           onDetach={() => detach(pickerFor)}
           onReattach={newPrimaryId => reattach(pickerFor, newPrimaryId)}
-          onAttach={primaryId => attachTo(pickerFor, primaryId)}
+          onAttach={bodyguardId => attachTo(bodyguardId, pickerFor)}
           onSetImage={url => setImage(pickerFor, url)}
         />
       )}

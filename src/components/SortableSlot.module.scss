@@ -1,0 +1,51 @@
+.handle {
+  position: absolute;
+  top: 0.375rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.2);
+  cursor: grab;
+  touch-action: none;
+  z-index: 2;
+
+  &:active {
+    cursor: grabbing;
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.indicatorTop,
+.indicatorBottom {
+  position: relative;
+}
+
+.indicatorTop::before {
+  content: '';
+  position: absolute;
+  top: -0.25rem;
+  left: 0;
+  right: 0;
+  height: 0.125rem;
+  background: var(--accent);
+  z-index: 10;
+  border-radius: 0.0625rem;
+  pointer-events: none;
+}
+
+.indicatorBottom::after {
+  content: '';
+  position: absolute;
+  bottom: -0.25rem;
+  left: 0;
+  right: 0;
+  height: 0.125rem;
+  background: var(--accent);
+  z-index: 10;
+  border-radius: 0.0625rem;
+  pointer-events: none;
+}

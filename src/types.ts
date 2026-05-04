@@ -36,8 +36,8 @@ export interface Unit {
   stats: UnitStats | null;
   ranged: WeaponStats[];
   melee: WeaponStats[];
-  ownAbilities: Ability[];
-  ruleAbilities: Ability[];
+  abilities: Ability[];
+  rules: Ability[];
   enhancement?: Ability;
 }
 

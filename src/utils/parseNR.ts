@@ -35,6 +35,7 @@ interface NRSelection {
   categories?: NRCategory[];
   costs?: NRCost[];
   rules?: NRRule[];
+
 }
 
 export interface NRJson {
@@ -89,8 +90,20 @@ function dedup<T extends { name: string }>(items: T[]): T[] {
   return items.filter(item => seen.has(item.name) ? false : (seen.add(item.name), true));
 }
 
-const SKIP_CATEGORIES = new Set(['(No Category)', 'Configuration', 'Epic Hero']);
-const SKIP_RULES = new Set(['Cold Fervour', 'Reanimation Protocols']);
+function extractAbilities(selections: NRSelection[], out: Ability[]): void {
+  for (const sub of selections) {
+    if (sub.group === 'Enhancements') continue;
+    for (const prof of (sub.profiles ?? [])) {
+      if (prof.typeName === 'Abilities') {
+        out.push({
+          name: prof.name,
+          desc: (prof.characteristics ?? []).find(c => c.name === 'Description')?.['$text'] ?? '',
+        });
+      }
+    }
+    if (sub.selections) extractAbilities(sub.selections, out);
+  }
+}
 
 export function parseNR(json: NRJson): Army {
   const force = json.roster.forces[0];
@@ -108,16 +121,20 @@ export function parseNR(json: NRJson): Army {
     .map((sel, idx) => {
       const unitProfile = findUnitProfile(sel);
 
-      const ownAbilities: Ability[] = (sel.profiles ?? [])
+      const profileAbilities: Ability[] = (sel.profiles ?? [])
         .filter(p => p.typeName === 'Abilities')
         .map(p => ({
           name: p.name,
           desc: (p.characteristics ?? []).find(c => c.name === 'Description')?.['$text'] ?? '',
         }));
 
-      const ruleAbilities: Ability[] = (sel.rules ?? [])
-        .filter(r => !SKIP_RULES.has(r.name))
-        .map(r => ({ name: r.name, desc: r.description }));
+      const ruleAbilities: Ability[] = (sel.rules ?? []).map(r => ({
+        name: r.name,
+        desc: r.description,
+      }));
+
+      const subAbilities: Ability[] = [];
+      extractAbilities(sel.selections ?? [], subAbilities);
 
       const ranged: WeaponStats[] = [];
       const melee: WeaponStats[] = [];
@@ -130,7 +147,7 @@ export function parseNR(json: NRJson): Army {
 
       const keywords = (sel.categories ?? [])
         .map(c => c.name)
-        .filter(n => !SKIP_CATEGORIES.has(n) && !n.startsWith('Faction:'));
+        .filter(n => !n.startsWith('Faction:'));
 
       const pts = (sel.costs ?? []).find(c => c.name === 'pts');
 
@@ -159,8 +176,8 @@ export function parseNR(json: NRJson): Army {
         stats,
         ranged: dedup(ranged),
         melee: dedup(melee),
-        ownAbilities,
-        ruleAbilities,
+        abilities: dedup([...profileAbilities, ...subAbilities]),
+        rules: dedup(ruleAbilities),
         enhancement,
       };
     });

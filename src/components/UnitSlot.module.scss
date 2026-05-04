@@ -1,0 +1,26 @@
+.shell {
+  position: relative;
+}
+
+.cluster {
+  position: relative;
+  border-left: 0.1875rem solid transparent;
+  overflow: hidden;
+}
+
+.actedMark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  pointer-events: none;
+  color: var(--accent);
+  background: rgba(0, 0, 0, 0.55);
+  width: 2em;
+  height: 2em;
+  font-size: 1.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}

@@ -1,4 +1,4 @@
-import type { Ability } from '../types';
+import type { Ability, Unit } from '../types';
 
 const KEYWORDS = new Set([
   'leader', 'feel no pain', 'invulnerable save', 'deep strike',
@@ -21,6 +21,14 @@ export function getInv(abilities: Ability[]): string | null {
     }
   }
   return null;
+}
+
+export function isLeader(unit: Unit): boolean {
+  return unit.abilities.some(a => a.name.toLowerCase().trim() === 'leader');
+}
+
+export function hasFightFirst(abilities: Ability[]): boolean {
+  return abilities.some(a => a.name.toLowerCase().trim() === 'fights first');
 }
 
 export function getFNP(abilities: Ability[]): string | null {

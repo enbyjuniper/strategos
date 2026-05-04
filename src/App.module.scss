@@ -15,12 +15,6 @@
   margin-bottom: 0.5rem;
 }
 
-// Cluster occupies a single grid cell — same width as any card.
-// Cards inside share a tinted background with a colored left rail.
-.cluster {
-  border-left: 0.1875rem solid transparent; // color set via inline style
-  overflow: hidden;
-}
 
 .empty {
   display: flex;

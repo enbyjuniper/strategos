@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import styles from './BottomSheet.module.scss';
 
 const CtxClose = createContext<() => void>(() => {});
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSheetClose = () => useContext(CtxClose);
 
 interface Props {
@@ -24,7 +25,7 @@ export function BottomSheet({ onClose, maxHeight = '70vh', children }: Props) {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') requestClose();
+      if (e.key === 'Escape' && !done.current) setClosing(true);
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
