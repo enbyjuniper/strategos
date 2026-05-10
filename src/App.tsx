@@ -22,7 +22,7 @@ const PHASE_LABELS: Record<Phase, string> = {
   move: 'Movement', shoot: 'Shooting', melee: 'Melee', dur: 'Durability', abil: 'Abilities',
 };
 
-const SWIPE_TRIGGER = 150; // px — change this to tune swipe sensitivity
+const SWIPE_TRIGGER = 75; // px — change this to tune swipe sensitivity
 const SWIPE_SHOW = SWIPE_TRIGGER / 2; // pill starts appearing halfway to the trigger
 const SWIPE_LERP = 0.18; // exponential smoothing per frame — lower = more lag
 
