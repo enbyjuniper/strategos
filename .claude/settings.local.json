@@ -42,7 +42,10 @@
       "Bash(node -e \"require\\('sharp'\\)\")",
       "Bash(npm list *)",
       "Bash(npx pwa-assets-generator *)",
-      "Bash(git -C /home/jlatourmagnan/strategos diff HEAD -- src/App.tsx src/components/BottomSheet.tsx src/components/Header.tsx src/components/PhaseTabs.tsx src/components/UnitCard.tsx src/components/UnitPicker.tsx src/components/UnitSlot.tsx src/App.module.scss src/index.css vite.config.ts index.html package.json)"
+      "Bash(git -C /home/jlatourmagnan/strategos diff HEAD -- src/App.tsx src/components/BottomSheet.tsx src/components/Header.tsx src/components/PhaseTabs.tsx src/components/UnitCard.tsx src/components/UnitPicker.tsx src/components/UnitSlot.tsx src/App.module.scss src/index.css vite.config.ts index.html package.json)",
+      "Bash(convert --version)",
+      "Bash(node -e \"import\\('/home/jlatourmagnan/strategos/node_modules/@vite-pwa/assets-generator/dist/config.js'\\).then\\(m => console.log\\(JSON.stringify\\(m.minimal2023Preset, null, 2\\)\\)\\)\")",
+      "Bash(node --input-type=module)"
     ]
   }
 }
