@@ -39,9 +39,10 @@ interface Props {
   imageUrl?: string;
   acted?: boolean;
   onToggleActed?: () => void;
+  clusterNameColor?: string;
 }
 
-export function UnitCard({ unit, phase, onOpenImagePicker, onOpenPicker, imageUrl, acted, onToggleActed }: Props) {
+export function UnitCard({ unit, phase, onOpenImagePicker, onOpenPicker, imageUrl, acted, onToggleActed, clusterNameColor }: Props) {
   if (!unit.stats) return null;
 
   const inv = getInv(unit.abilities);
@@ -94,6 +95,7 @@ export function UnitCard({ unit, phase, onOpenImagePicker, onOpenPicker, imageUr
         <div className={styles.nameRow}>
           <div
             className={`${styles.name}${unit.isChar ? ` ${styles.nameChar}` : ''}`}
+            style={unit.isChar && clusterNameColor ? { color: clusterNameColor } : undefined}
           >
             {unit.name}
           </div>

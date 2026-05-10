@@ -460,9 +460,9 @@ function App() {
                   return (
                     <SortableSlot key={id} id={id} className={styles.gridItem} indicator={indicatorFor(id)}>
                       <UnitSlot acted={actedIds.has(unit.id)} accent={color}>
-                        <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenImagePicker={() => setPickerFor({ unitId: unit.id, section: 'image' })} onOpenPicker={isLeader(unit) ? () => setPickerFor({ unitId: unit.id, section: 'cluster' }) : undefined} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} />
+                        <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenImagePicker={() => setPickerFor({ unitId: unit.id, section: 'image' })} onOpenPicker={isLeader(unit) ? () => setPickerFor({ unitId: unit.id, section: 'cluster' }) : undefined} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} clusterNameColor={color.line} />
                         {sortedAttached.map(u => (
-                          <UnitCard key={u.id} unit={u} phase={phase} imageUrl={unitImages[u.id]} onOpenImagePicker={() => setPickerFor({ unitId: u.id, section: 'image' })} onOpenPicker={isLeader(u) ? () => setPickerFor({ unitId: u.id, section: 'cluster' }) : undefined} acted={actedIds.has(u.id)} onToggleActed={() => toggleActed(u.id)} />
+                          <UnitCard key={u.id} unit={u} phase={phase} imageUrl={unitImages[u.id]} onOpenImagePicker={() => setPickerFor({ unitId: u.id, section: 'image' })} onOpenPicker={isLeader(u) ? () => setPickerFor({ unitId: u.id, section: 'cluster' }) : undefined} acted={actedIds.has(u.id)} onToggleActed={() => toggleActed(u.id)} clusterNameColor={color.line} />
                         ))}
                       </UnitSlot>
                     </SortableSlot>
