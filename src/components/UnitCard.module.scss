@@ -91,6 +91,13 @@
   gap: 0.25rem;
 }
 
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
 .topRight {
   display: flex;
   align-items: center;

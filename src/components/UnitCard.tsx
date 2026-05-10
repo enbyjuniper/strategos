@@ -91,23 +91,12 @@ export function UnitCard({ unit, phase, onOpenImagePicker, onOpenPicker, imageUr
       )}
       <div className={styles.cardContent}>
       <div className={styles.top}>
-        <div
-          className={`${styles.name}${unit.isChar ? ` ${styles.nameChar}` : ''}`}
-        >
-          {unit.name}
-        </div>
-        <div className={styles.topRight}>
-          {onOpenPicker && (
-            <button
-            className={styles.button}
-            onPointerDown={e => { if (!acted) e.stopPropagation(); }}
-            onClick={e => { if (!acted) { e.stopPropagation(); onOpenPicker(); } }}
-            title="Manage cluster"
-            disabled={acted}
-            >
-              <LinkIcon size={16} weight="bold" />
-            </button>
-          )}
+        <div className={styles.nameRow}>
+          <div
+            className={`${styles.name}${unit.isChar ? ` ${styles.nameChar}` : ''}`}
+          >
+            {unit.name}
+          </div>
           {onOpenImagePicker && (
             <button
             className={styles.button}
@@ -119,6 +108,19 @@ export function UnitCard({ unit, phase, onOpenImagePicker, onOpenPicker, imageUr
               <ImageIcon size={16} weight="fill" />
             </button>
           )}
+          {onOpenPicker && (
+            <button
+            className={styles.button}
+            onPointerDown={e => { if (!acted) e.stopPropagation(); }}
+            onClick={e => { if (!acted) { e.stopPropagation(); onOpenPicker(); } }}
+            title="Manage cluster"
+            disabled={acted}
+            >
+              <LinkIcon size={16} weight="bold" />
+            </button>
+          )}
+        </div>
+        <div className={styles.topRight}>
           {unitType && (
             <span
               className={styles.typePip}
