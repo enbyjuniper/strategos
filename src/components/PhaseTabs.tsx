@@ -19,21 +19,26 @@ const TABS: TabDef[] = [
 interface Props {
   phase: Phase;
   onChange: (p: Phase) => void;
+  preview?: Phase;
 }
 
-export function PhaseTabs({ phase, onChange }: Props) {
+export function PhaseTabs({ phase, onChange, preview }: Props) {
   return (
     <div className={styles.tabs}>
-      {TABS.map(t => (
-        <button
-          key={t.id}
-          className={`${styles.tab}${phase === t.id ? ` ${styles.active}` : ''}`}
-          style={phase === t.id ? { '--tab-color': t.color } as CSSProperties : undefined}
-          onClick={() => onChange(t.id)}
-        >
-          {t.label}
-        </button>
-      ))}
+      {TABS.map(t => {
+        const isActive = phase === t.id;
+        const isPreview = !isActive && preview === t.id;
+        return (
+          <button
+            key={t.id}
+            className={`${styles.tab}${isActive ? ` ${styles.active}` : ''}${isPreview ? ` ${styles.preview}` : ''}`}
+            style={isActive || isPreview ? { '--tab-color': t.color } as CSSProperties : undefined}
+            onClick={() => onChange(t.id)}
+          >
+            {t.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

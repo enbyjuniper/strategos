@@ -33,7 +33,16 @@
       "Bash(node -e \"const p = require\\('/home/jlatourmagnan/strategos/node_modules/@phosphor-icons/react'\\); console.log\\(p.DotsSixVertical ? 'exists' : 'missing', p.DotsNine ? 'exists' : 'missing', p.DotsSix ? 'exists' : 'missing'\\)\")",
       "Bash(node -e \"const p = require\\('/home/jlatourmagnan/strategos/node_modules/@phosphor-icons/react'\\); console.log\\(Object.keys\\(p\\).filter\\(k => k.toLowerCase\\(\\).includes\\('drag'\\) || k.toLowerCase\\(\\).includes\\('grip'\\) || k.toLowerCase\\(\\).includes\\('handle'\\) || k.toLowerCase\\(\\).includes\\('sort'\\)\\)\\)\")",
       "Bash(node -e \"const p = require\\('/home/jlatourmagnan/strategos/node_modules/@phosphor-icons/react'\\); console.log\\(Object.keys\\(p\\).filter\\(k => k.toLowerCase\\(\\).includes\\('dot'\\)\\).join\\('\\\\n'\\)\\)\")",
-      "Bash(node -e \"const p = require\\('/home/jlatourmagnan/strategos/node_modules/@phosphor-icons/react'\\); const keys = Object.keys\\(p\\); console.log\\(keys.slice\\(0,20\\).join\\('\\\\n'\\)\\); console.log\\('total:', keys.length\\)\")"
+      "Bash(node -e \"const p = require\\('/home/jlatourmagnan/strategos/node_modules/@phosphor-icons/react'\\); const keys = Object.keys\\(p\\); console.log\\(keys.slice\\(0,20\\).join\\('\\\\n'\\)\\); console.log\\('total:', keys.length\\)\")",
+      "Bash(node -e \"const p = require\\('@phosphor-icons/react'\\); const icons = Object.keys\\(p\\).filter\\(k => k.toLowerCase\\(\\).includes\\('image'\\) || k.toLowerCase\\(\\).includes\\('camera'\\) || k.toLowerCase\\(\\).includes\\('photo'\\)\\); console.log\\(icons.slice\\(0,20\\)\\);\")",
+      "Bash(awk '{print $1}')",
+      "Bash(ip route *)",
+      "Bash(awk '/default/ {print $3}')",
+      "Bash(powershell.exe -NoProfile -Command 'Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq '\\\\''Dhcp'\\\\'' -or $_.PrefixOrigin -eq '\\\\''Manual'\\\\'' } | Select-Object IPAddress, InterfaceAlias | Format-List')",
+      "Bash(node -e \"require\\('sharp'\\)\")",
+      "Bash(npm list *)",
+      "Bash(npx pwa-assets-generator *)",
+      "Bash(git -C /home/jlatourmagnan/strategos diff HEAD -- src/App.tsx src/components/BottomSheet.tsx src/components/Header.tsx src/components/PhaseTabs.tsx src/components/UnitCard.tsx src/components/UnitPicker.tsx src/components/UnitSlot.tsx src/App.module.scss src/index.css vite.config.ts index.html package.json)"
     ]
   }
 }

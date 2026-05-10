@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   DndContext, closestCenter, MouseSensor, TouchSensor,
   DragOverlay, useSensor, useSensors,
@@ -17,6 +17,17 @@ import { SortableSlot } from './components/SortableSlot';
 import { UnitPicker } from './components/UnitPicker';
 import styles from './App.module.scss';
 
+const PHASES: Phase[] = ['move', 'shoot', 'melee', 'dur', 'abil'];
+const PHASE_LABELS: Record<Phase, string> = {
+  move: 'Movement', shoot: 'Shooting', melee: 'Melee', dur: 'Durability', abil: 'Abilities',
+};
+
+const SWIPE_TRIGGER = 150; // px — change this to tune swipe sensitivity
+const SWIPE_SHOW = SWIPE_TRIGGER / 2; // pill starts appearing halfway to the trigger
+const SWIPE_LERP = 0.18; // exponential smoothing per frame — lower = more lag
+
+const CHAR_COLOR = { line: 'var(--char)', bg: 'rgba(240,192,96,0.06)' };
+
 const CLUSTER_COLORS = [
   { line: '#4a9eff', bg: 'rgba(74,158,255,0.06)' },
   { line: '#b070ff', bg: 'rgba(176,112,255,0.06)' },
@@ -29,6 +40,14 @@ function colorForCluster(primaryId: string) {
   let h = 0;
   for (const c of primaryId) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff;
   return CLUSTER_COLORS[h % CLUSTER_COLORS.length];
+}
+
+function hexToClusterColor(hex: string) {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return { line: hex, bg: 'rgba(0,0,0,0.06)' };
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { line: hex, bg: `rgba(${r},${g},${b},0.06)` };
 }
 
 function buildOrder(unitIds: string[], saved: string | null): string[] {
@@ -51,6 +70,13 @@ function App() {
     } catch { return null; }
   });
   const [phase, setPhase] = useState<Phase>('move');
+  const [swipe, setSwipe] = useState<{ target: Phase; isNext: boolean } | null>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const pillPRef = useRef(0);        // current displayed progress (0–1)
+  const pillTargetRef = useRef(0);   // target progress from finger position
+  const pillRAFRef = useRef(0);      // requestAnimationFrame handle
+  const pillIsNextRef = useRef(false);
   const [headerOpen, setHeaderOpen] = useState(() => !localStorage.getItem('strategos_list'));
   const [attachments, setAttachments] = useState<Attachments>(() => {
     try {
@@ -68,30 +94,34 @@ function App() {
   });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
-  const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [pickerFor, setPickerFor] = useState<{ unitId: string; section: 'image' | 'cluster' } | null>(null);
   const [unitImages, setUnitImages] = useState<Record<string, string>>(() => {
     try {
       const imgs = localStorage.getItem('strategos_images');
       return imgs ? JSON.parse(imgs) : {};
     } catch { return {}; }
   });
-  // Tracks acted units; tagged with phase+army so stale toggles are discarded on phase/army change
-  const [actedStore, setActedStore] = useState<{ phase: Phase; army: Army | null; ids: Set<string> }>({
-    phase: 'move',
+  const [clusterColors, setClusterColors] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('strategos_cluster_colors');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  // Tracks acted units per phase; tagged with army so stale state is discarded on army change
+  const [actedStore, setActedStore] = useState<{ army: Army | null; byPhase: Partial<Record<Phase, Set<string>>> }>({
     army: null,
-    ids: new Set(),
+    byPhase: {},
   });
 
   const actedIds = useMemo(() => {
-    if (!army) return new Set<string>();
-    const auto = new Set(
-      army.units
-        .filter(u => (phase === 'shoot' && u.ranged.length === 0) || (phase === 'melee' && u.melee.length === 0))
-        .map(u => u.id)
-    );
-    if (actedStore.phase !== phase || actedStore.army !== army) return auto;
-    return actedStore.ids;
+    if (!army || actedStore.army !== army) return new Set<string>();
+    return actedStore.byPhase[phase] ?? new Set<string>();
   }, [army, phase, actedStore]);
+
+  const hasAnyActed = useMemo(() => {
+    if (!army || actedStore.army !== army) return false;
+    return Object.values(actedStore.byPhase).some(s => s.size > 0);
+  }, [army, actedStore]);
 
   function getClusterIds(unitId: string): string[] {
     if (attachments[unitId]?.length > 0) return [unitId, ...attachments[unitId]];
@@ -101,19 +131,147 @@ function App() {
     return [unitId];
   }
 
+  function clearActed() {
+    if (!army) return;
+    setActedStore({ army, byPhase: {} });
+  }
+
   function toggleActed(unitId: string) {
     setActedStore(prev => {
-      const autoIds = army?.units
-        .filter(u => (phase === 'shoot' && u.ranged.length === 0) || (phase === 'melee' && u.melee.length === 0))
-        .map(u => u.id) ?? [];
-      const base = (prev.phase === phase && prev.army === army)
-        ? new Set(prev.ids)
-        : new Set<string>(autoIds);
+      const prevByPhase = prev.army === army ? prev.byPhase : {};
+      const current = new Set(prevByPhase[phase] ?? []);
       const ids = getClusterIds(unitId);
-      if (base.has(unitId)) ids.forEach(id => base.delete(id));
-      else ids.forEach(id => base.add(id));
-      return { phase, army, ids: base };
+      if (current.has(unitId)) ids.forEach(id => current.delete(id));
+      else ids.forEach(id => current.add(id));
+      return { army, byPhase: { ...prevByPhase, [phase]: current } };
     });
+  }
+
+  const swipeStartX = useRef<number | null>(null);
+  const swipeStartY = useRef<number | null>(null);
+  const swipeAxisLockedRef = useRef(false);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    if (activeId) return;
+    swipeStartX.current = e.touches[0].clientX;
+    swipeStartY.current = e.touches[0].clientY;
+    swipeAxisLockedRef.current = false;
+  }
+
+  function writePill(p: number) {
+    if (!pillRef.current) return;
+    const d = pillIsNextRef.current ? 1 : -1;
+    pillRef.current.style.transform = `translateY(-50%) translateX(${d * (1 - p) * 100}%)`;
+    pillRef.current.style.opacity = String(p);
+  }
+
+  function writeGrid(p: number) {
+    if (!gridRef.current) return;
+    const d = pillIsNextRef.current ? -1 : 1;
+    gridRef.current.style.transform = `translateX(${d * p * 10}px)`;
+    gridRef.current.style.opacity = String(1 - 0.45 * p);
+  }
+
+  function hidePill(immediate = false) {
+    pillPRef.current = 0;
+    cancelAnimationFrame(pillRAFRef.current);
+    if (pillRef.current) {
+      pillRef.current.style.opacity = '0';
+      pillRef.current.style.transform = '';
+    }
+    if (gridRef.current) {
+      if (immediate) {
+        gridRef.current.style.transition = '';
+        gridRef.current.style.transform = '';
+        gridRef.current.style.opacity = '';
+      } else {
+        gridRef.current.style.transition = 'transform 0.25s ease, opacity 0.25s ease';
+        gridRef.current.style.transform = '';
+        gridRef.current.style.opacity = '';
+        gridRef.current.addEventListener('transitionend', () => {
+          if (gridRef.current) gridRef.current.style.transition = '';
+        }, { once: true });
+      }
+    }
+  }
+
+  function runPillAnim() {
+    const next = pillPRef.current + (pillTargetRef.current - pillPRef.current) * SWIPE_LERP;
+    pillPRef.current = Math.abs(next - pillTargetRef.current) < 0.002 ? pillTargetRef.current : next;
+    writePill(pillPRef.current);
+    writeGrid(pillPRef.current);
+    if (pillPRef.current !== pillTargetRef.current) {
+      pillRAFRef.current = requestAnimationFrame(runPillAnim);
+    }
+  }
+
+  function updatePillContent(target: Phase, isNext: boolean) {
+    if (!pillRef.current) return;
+    pillRef.current.className = `${styles.swipeIndicator} ${isNext ? styles.swipeRight : styles.swipeLeft}`;
+    pillRef.current.style.setProperty('--swipe-color', `var(--${target})`);
+    pillRef.current.textContent = PHASE_LABELS[target];
+  }
+
+  function applyPillStyle(absX: number, isNext: boolean) {
+    if (!pillRef.current) return;
+    pillTargetRef.current = Math.min(1, Math.max(0, (absX - SWIPE_SHOW) / (SWIPE_TRIGGER - SWIPE_SHOW)));
+    pillIsNextRef.current = isNext;
+    cancelAnimationFrame(pillRAFRef.current);
+    pillRAFRef.current = requestAnimationFrame(runPillAnim);
+  }
+
+  useEffect(() => () => cancelAnimationFrame(pillRAFRef.current), []);
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (activeId || swipeStartX.current === null || swipeStartY.current === null) return;
+    const dx = e.touches[0].clientX - swipeStartX.current;
+    const dy = e.touches[0].clientY - swipeStartY.current;
+    const absX = Math.abs(dx);
+    if (!swipeAxisLockedRef.current) {
+      if (Math.abs(dy) > absX || absX < SWIPE_SHOW) {
+        if (swipe !== null) {
+          hidePill();
+          setSwipe(null);
+        }
+        return;
+      }
+      swipeAxisLockedRef.current = true;
+    }
+    const idx = PHASES.indexOf(phase);
+    const isNext = dx < 0;
+    const target = isNext ? PHASES[(idx + 1) % PHASES.length] : PHASES[(idx - 1 + PHASES.length) % PHASES.length];
+    if (gridRef.current) gridRef.current.style.transition = '';
+    updatePillContent(target, isNext);
+    applyPillStyle(absX, isNext);
+    if (target !== swipe?.target || isNext !== swipe?.isNext) setSwipe({ target, isNext });
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    setSwipe(null);
+    const wasAxisLocked = swipeAxisLockedRef.current;
+    swipeAxisLockedRef.current = false;
+    if (activeId || swipeStartX.current === null || swipeStartY.current === null) {
+      hidePill(false);
+      return;
+    }
+    const dx = e.changedTouches[0].clientX - swipeStartX.current;
+    const dy = e.changedTouches[0].clientY - swipeStartY.current;
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+    const completed = wasAxisLocked && Math.abs(dy) <= Math.abs(dx) && Math.abs(dx) >= SWIPE_TRIGGER;
+    hidePill(completed);
+    if (!completed) return;
+    const idx = PHASES.indexOf(phase);
+    if (dx < 0) setPhase(PHASES[(idx + 1) % PHASES.length]);
+    else setPhase(PHASES[(idx - 1 + PHASES.length) % PHASES.length]);
+  }
+
+  function handleTouchCancel() {
+    swipeAxisLockedRef.current = false;
+    hidePill();
+    swipeStartX.current = null;
+    swipeStartY.current = null;
+    setSwipe(null);
   }
 
   const sensors = useSensors(
@@ -126,6 +284,10 @@ function App() {
   }, [attachments]);
 
   useEffect(() => {
+    try { localStorage.setItem('strategos_cluster_colors', JSON.stringify(clusterColors)); } catch { /* ignore */ }
+  }, [clusterColors]);
+
+  useEffect(() => {
     if (unitOrder.length > 0) {
       try { localStorage.setItem('strategos_order', JSON.stringify(unitOrder)); } catch { /* ignore */ }
     }
@@ -136,6 +298,7 @@ function App() {
       const parsed = parseNR(JSON.parse(raw) as NRJson);
       setArmy(parsed);
       setAttachments({});
+      setClusterColors({});
       setUnitOrder(parsed.units.map(u => u.id));
       setPickerFor(null);
       setHeaderOpen(false);
@@ -191,6 +354,7 @@ function App() {
 
   function attachTo(unitId: string, primaryId: string) {
     setAttachments(prev => ({ ...prev, [primaryId]: [...(prev[primaryId] ?? []), unitId] }));
+    setClusterColors(prev => prev[primaryId] ? prev : { ...prev, [primaryId]: colorForCluster(primaryId).line });
     setPickerFor(null);
   }
 
@@ -231,6 +395,7 @@ function App() {
 
   function dissolve(primaryId: string) {
     setAttachments(prev => { const next = { ...prev }; delete next[primaryId]; return next; });
+    setClusterColors(prev => { const next = { ...prev }; delete next[primaryId]; return next; });
     setPickerFor(null);
   }
 
@@ -238,16 +403,17 @@ function App() {
 
   if (!army) {
     return (
-      <>
+      <div data-swiping={swipe !== null || undefined}>
         <Header army={null} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} onRawJson={handleRawJson} />
-        <div className={styles.content}>
+        <div className={styles.content} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
           <div className={styles.empty}>
             <div className={styles.emptyTitle}>No army loaded</div>
             <div className={styles.emptySub}>Tap ☰ above to import a New Recruit JSON file.</div>
           </div>
         </div>
-        <PhaseTabs phase={phase} onChange={setPhase} />
-      </>
+        <div ref={pillRef} className={styles.swipeIndicator} />
+        <PhaseTabs phase={phase} onChange={setPhase} preview={swipe?.target} />
+      </div>
     );
   }
 
@@ -264,9 +430,9 @@ function App() {
   }
 
   return (
-    <>
+    <div data-swiping={swipe !== null || undefined}>
       <Header army={army} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} onRawJson={handleRawJson} />
-      <div className={styles.content}>
+      <div className={styles.content} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -276,7 +442,7 @@ function App() {
           onDragCancel={handleDragCancel}
         >
           <SortableContext items={visibleIds} strategy={() => null}>
-            <div className={styles.grid}>
+            <div ref={gridRef} className={styles.grid}>
               {visibleIds.map(id => {
                 const unit = army.units.find(u => u.id === id);
                 if (!unit) return null;
@@ -290,13 +456,13 @@ function App() {
                     ...attached.filter(u => isLeader(u)),
                     ...attached.filter(u => !isLeader(u)),
                   ];
-                  const color = colorForCluster(unit.id);
+                  const color = clusterColors[unit.id] ? hexToClusterColor(clusterColors[unit.id]) : colorForCluster(unit.id);
                   return (
                     <SortableSlot key={id} id={id} className={styles.gridItem} indicator={indicatorFor(id)}>
-                      <UnitSlot acted={actedIds.has(unit.id)} cluster={color}>
-                        <UnitCard unit={unit} phase={phase} nested imageUrl={unitImages[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} />
+                      <UnitSlot acted={actedIds.has(unit.id)} accent={color}>
+                        <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenImagePicker={() => setPickerFor({ unitId: unit.id, section: 'image' })} onOpenPicker={isLeader(unit) ? () => setPickerFor({ unitId: unit.id, section: 'cluster' }) : undefined} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} />
                         {sortedAttached.map(u => (
-                          <UnitCard key={u.id} unit={u} phase={phase} nested imageUrl={unitImages[u.id]} onOpenPicker={() => setPickerFor(u.id)} acted={actedIds.has(u.id)} onToggleActed={() => toggleActed(u.id)} />
+                          <UnitCard key={u.id} unit={u} phase={phase} imageUrl={unitImages[u.id]} onOpenImagePicker={() => setPickerFor({ unitId: u.id, section: 'image' })} onOpenPicker={isLeader(u) ? () => setPickerFor({ unitId: u.id, section: 'cluster' }) : undefined} acted={actedIds.has(u.id)} onToggleActed={() => toggleActed(u.id)} />
                         ))}
                       </UnitSlot>
                     </SortableSlot>
@@ -305,8 +471,8 @@ function App() {
 
                 return (
                   <SortableSlot key={id} id={id} className={styles.gridItem} indicator={indicatorFor(id)}>
-                    <UnitSlot acted={actedIds.has(unit.id)}>
-                      <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenPicker={() => setPickerFor(unit.id)} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} />
+                    <UnitSlot acted={actedIds.has(unit.id)} accent={unit.isChar ? CHAR_COLOR : undefined}>
+                      <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenImagePicker={() => setPickerFor({ unitId: unit.id, section: 'image' })} onOpenPicker={isLeader(unit) ? () => setPickerFor({ unitId: unit.id, section: 'cluster' }) : undefined} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} />
                     </UnitSlot>
                   </SortableSlot>
                 );
@@ -325,23 +491,31 @@ function App() {
           </DragOverlay>
         </DndContext>
       </div>
-      <PhaseTabs phase={phase} onChange={setPhase} />
+      <div ref={pillRef} className={styles.swipeIndicator} />
+      <PhaseTabs phase={phase} onChange={setPhase} preview={swipe?.target} />
+      {hasAnyActed && (
+        <button className={styles.clearBtn} onClick={clearActed}>Ready all</button>
+      )}
 
       {pickerFor && (
         <UnitPicker
-          unitId={pickerFor}
+          unitId={pickerFor.unitId}
+          section={pickerFor.section}
           army={army}
           attachments={attachments}
-          imageUrl={unitImages[pickerFor]}
+          imageUrl={unitImages[pickerFor.unitId]}
           onClose={() => setPickerFor(null)}
-          onDissolve={() => dissolve(pickerFor)}
-          onDetach={() => detach(pickerFor)}
-          onReattach={newPrimaryId => reattach(pickerFor, newPrimaryId)}
-          onAttach={bodyguardId => attachTo(bodyguardId, pickerFor)}
-          onSetImage={url => setImage(pickerFor, url)}
+          onDissolve={() => dissolve(pickerFor.unitId)}
+          onDetach={() => detach(pickerFor.unitId)}
+          onDetachUnit={uid => detach(uid)}
+          onReattach={newPrimaryId => reattach(pickerFor.unitId, newPrimaryId)}
+          onAttach={bodyguardId => attachTo(bodyguardId, pickerFor.unitId)}
+          onSetImage={url => setImage(pickerFor.unitId, url)}
+          clusterColor={clusterColors[pickerFor.unitId] ?? colorForCluster(pickerFor.unitId).line}
+          onSetClusterColor={hex => setClusterColors(prev => ({ ...prev, [pickerFor.unitId]: hex }))}
         />
       )}
-    </>
+    </div>
   );
 }
 

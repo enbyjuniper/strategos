@@ -5,21 +5,25 @@ import styles from './UnitSlot.module.scss';
 interface Props {
   children: ReactNode;
   acted: boolean;
-  cluster?: { line: string; bg: string };
+  accent?: { line: string; bg: string };
 }
 
-export function UnitSlot({ children, acted, cluster }: Props) {
+export function UnitSlot({ children, acted, accent }: Props) {
   return (
     <div
-      className={cluster ? styles.cluster : styles.shell}
-      style={cluster ? { borderLeftColor: cluster.line, background: cluster.bg } : undefined}
+      className={styles.frame}
+      style={accent ? {
+        borderLeftColor: accent.line,
+        borderLeftWidth: '0.1875rem',
+        background: accent.bg,
+      } : undefined}
     >
+      {children}
       {acted && (
         <div className={styles.actedMark}>
           <CheckIcon weight="bold" />
         </div>
       )}
-      {children}
     </div>
   );
 }

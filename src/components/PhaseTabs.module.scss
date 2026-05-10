@@ -34,4 +34,9 @@
     color: var(--tab-color);
     background: color-mix(in srgb, var(--tab-color) 6%, transparent);
   }
+
+  &.preview {
+    border-top-color: color-mix(in srgb, var(--tab-color) 45%, transparent);
+    color: color-mix(in srgb, var(--tab-color) 60%, var(--txt2));
+  }
 }

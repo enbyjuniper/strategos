@@ -1,4 +1,4 @@
-import { LinkIcon } from '@phosphor-icons/react';
+import { ImageIcon, LinkIcon } from '@phosphor-icons/react';
 import type { Unit, Phase } from '../types';
 import { getInv, getFNP, hasFightFirst, isKeyword } from '../utils/abilities';
 import { renderRichText } from '../utils/richText';
@@ -34,18 +34,18 @@ function findTags(prefixes: string[], pool: string[]): string[] {
 interface Props {
   unit: Unit;
   phase: Phase;
+  onOpenImagePicker?: () => void;
   onOpenPicker?: () => void;
-  nested?: boolean;
   imageUrl?: string;
   acted?: boolean;
   onToggleActed?: () => void;
 }
 
-export function UnitCard({ unit, phase, onOpenPicker, nested, imageUrl, acted, onToggleActed }: Props) {
+export function UnitCard({ unit, phase, onOpenImagePicker, onOpenPicker, imageUrl, acted, onToggleActed }: Props) {
   if (!unit.stats) return null;
 
   const inv = getInv(unit.abilities);
-  const fnp = getFNP(unit.abilities);
+  const fnp = getFNP([...unit.abilities, ...unit.rules]);
   const kwAbilities = unit.abilities.filter(a => isKeyword(a.name));
   const regAbilities = unit.abilities.filter(a => !isKeyword(a.name));
 
@@ -56,14 +56,15 @@ export function UnitCard({ unit, phase, onOpenPicker, nested, imageUrl, acted, o
   const durOverlayTags = findTags(DUR_OVERLAY_PREFIXES, tagPool);
   const fightFirst = hasFightFirst(unit.rules);
 
+  const isInactive = (phase === 'shoot' && unit.ranged.length === 0) || (phase === 'melee' && unit.melee.length === 0);
+
   const cardClass = [
     styles.card,
-    unit.isChar ? styles.char : '',
-    nested ? styles.nested : '',
     imageUrl ? styles.hasImage : '',
     fightFirst && phase === 'melee' ? styles.hasCornerOverlay : '',
     durOverlayTags.length > 0 && phase === 'dur' ? styles.hasCornerOverlay : '',
     acted ? styles.acted : '',
+    isInactive ? styles.inactive : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -96,6 +97,28 @@ export function UnitCard({ unit, phase, onOpenPicker, nested, imageUrl, acted, o
           {unit.name}
         </div>
         <div className={styles.topRight}>
+          {onOpenPicker && (
+            <button
+            className={styles.button}
+            onPointerDown={e => { if (!acted) e.stopPropagation(); }}
+            onClick={e => { if (!acted) { e.stopPropagation(); onOpenPicker(); } }}
+            title="Manage cluster"
+            disabled={acted}
+            >
+              <LinkIcon size={16} weight="bold" />
+            </button>
+          )}
+          {onOpenImagePicker && (
+            <button
+            className={styles.button}
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onOpenImagePicker(); }}
+            title="Set unit image"
+            disabled={acted}
+            >
+              <ImageIcon size={16} weight="fill" />
+            </button>
+          )}
           {unitType && (
             <span
               className={styles.typePip}
@@ -103,17 +126,6 @@ export function UnitCard({ unit, phase, onOpenPicker, nested, imageUrl, acted, o
             >
               {unitType}
             </span>
-          )}
-          {onOpenPicker && (
-            <button
-              className={styles.attachBtn}
-              onPointerDown={e => { if (!acted) e.stopPropagation(); }}
-              onClick={e => { if (!acted) { e.stopPropagation(); onOpenPicker(); } }}
-              title="Link / unlink unit"
-              disabled={acted}
-            >
-              <LinkIcon size={16} weight="bold" />
-            </button>
           )}
         </div>
       </div>

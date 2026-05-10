@@ -1,11 +1,12 @@
-.shell {
+.frame {
   position: relative;
-}
-
-.cluster {
-  position: relative;
-  border-left: 0.1875rem solid transparent;
+  background: var(--card);
+  border: 0.0625rem solid var(--border);
   overflow: hidden;
+
+  & > * + * {
+    border-top: 0.0625rem solid rgba(255, 255, 255, 0.07);
+  }
 }
 
 .actedMark {

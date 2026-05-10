@@ -32,6 +32,7 @@ html, body {
   background: var(--bg);
   color: var(--txt);
   font-family: var(--ff);
+  overscroll-behavior: none;
 }
 
 #root {
