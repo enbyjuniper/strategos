@@ -50,46 +50,97 @@ function hexToClusterColor(hex: string) {
   return { line: hex, bg: `rgba(${r},${g},${b},0.06)` };
 }
 
-function buildOrder(unitIds: string[], saved: string | null): string[] {
+interface ListEntry {
+  raw: string;
+  name: string;
+  attachments: Attachments;
+  clusterColors: Record<string, string>;
+  order: string[];
+  images: Record<string, string>;
+}
+
+const LISTS_KEY = 'strategos_lists';
+const CURRENT_KEY = 'strategos_current';
+
+function readStore(): Record<string, ListEntry> {
+  try {
+    const s = localStorage.getItem(LISTS_KEY);
+    return s ? JSON.parse(s) : {};
+  } catch { return {}; }
+}
+
+function writeStore(store: Record<string, ListEntry>) {
+  try { localStorage.setItem(LISTS_KEY, JSON.stringify(store)); } catch { /* ignore */ }
+}
+
+function buildOrder(unitIds: string[], saved: string[] | null): string[] {
   if (saved) {
-    try {
-      const parsed: string[] = JSON.parse(saved);
-      const valid = parsed.filter(id => unitIds.includes(id));
-      const missing = unitIds.filter(id => !valid.includes(id));
-      return [...valid, ...missing];
-    } catch { /* ignore */ }
+    const valid = saved.filter(id => unitIds.includes(id));
+    const missing = unitIds.filter(id => !valid.includes(id));
+    return [...valid, ...missing];
   }
   return [...unitIds];
 }
 
+// One-time migration from old flat keys to the new per-list store.
+function migrate() {
+  if (localStorage.getItem(LISTS_KEY) !== null) return;
+  try {
+    const raw = localStorage.getItem('strategos_list');
+    if (!raw) return;
+    const parsed = parseNR(JSON.parse(raw) as NRJson);
+    const attachments: Attachments = JSON.parse(localStorage.getItem('strategos_attachments') ?? '{}');
+    const clusterColors: Record<string, string> = JSON.parse(localStorage.getItem('strategos_cluster_colors') ?? '{}');
+    const order: string[] = JSON.parse(localStorage.getItem('strategos_order') ?? 'null') ?? parsed.units.map(u => u.id);
+    const images: Record<string, string> = JSON.parse(localStorage.getItem('strategos_images') ?? '{}');
+    const store: Record<string, ListEntry> = {
+      [parsed.id]: { raw, name: parsed.name, attachments, clusterColors, order, images },
+    };
+    writeStore(store);
+    localStorage.setItem(CURRENT_KEY, parsed.id);
+  } catch { /* ignore */ }
+}
+
+migrate();
+
 function App() {
+  const [currentListId, setCurrentListId] = useState<string | null>(() => localStorage.getItem(CURRENT_KEY));
   const [army, setArmy] = useState<Army | null>(() => {
     try {
-      const saved = localStorage.getItem('strategos_list');
-      return saved ? parseNR(JSON.parse(saved) as NRJson) : null;
+      const id = localStorage.getItem(CURRENT_KEY);
+      if (!id) return null;
+      const entry = readStore()[id];
+      return entry ? parseNR(JSON.parse(entry.raw) as NRJson) : null;
     } catch { return null; }
   });
   const [phase, setPhase] = useState<Phase>('move');
   const [swipe, setSwipe] = useState<{ target: Phase; isNext: boolean } | null>(null);
   const pillRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  const pillPRef = useRef(0);        // current displayed progress (0–1)
-  const pillTargetRef = useRef(0);   // target progress from finger position
-  const pillRAFRef = useRef(0);      // requestAnimationFrame handle
+  const pillPRef = useRef(0);
+  const pillTargetRef = useRef(0);
+  const pillRAFRef = useRef(0);
   const pillIsNextRef = useRef(false);
-  const [headerOpen, setHeaderOpen] = useState(() => !localStorage.getItem('strategos_list'));
+  const [headerOpen, setHeaderOpen] = useState(() => !localStorage.getItem(CURRENT_KEY));
+  const [savedLists, setSavedLists] = useState<Record<string, string>>(() => {
+    const s = readStore();
+    return Object.fromEntries(Object.entries(s).map(([id, e]) => [id, e.name]));
+  });
   const [attachments, setAttachments] = useState<Attachments>(() => {
     try {
-      const saved = localStorage.getItem('strategos_attachments');
-      return saved ? JSON.parse(saved) : {};
+      const id = localStorage.getItem(CURRENT_KEY);
+      if (!id) return {};
+      return readStore()[id]?.attachments ?? {};
     } catch { return {}; }
   });
   const [unitOrder, setUnitOrder] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('strategos_list');
-      if (!saved) return [];
-      const parsed = parseNR(JSON.parse(saved) as NRJson);
-      return buildOrder(parsed.units.map(u => u.id), localStorage.getItem('strategos_order'));
+      const id = localStorage.getItem(CURRENT_KEY);
+      if (!id) return [];
+      const entry = readStore()[id];
+      if (!entry) return [];
+      const parsed = parseNR(JSON.parse(entry.raw) as NRJson);
+      return buildOrder(parsed.units.map(u => u.id), entry.order);
     } catch { return []; }
   });
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -97,14 +148,16 @@ function App() {
   const [pickerFor, setPickerFor] = useState<{ unitId: string; section: 'image' | 'cluster' } | null>(null);
   const [unitImages, setUnitImages] = useState<Record<string, string>>(() => {
     try {
-      const imgs = localStorage.getItem('strategos_images');
-      return imgs ? JSON.parse(imgs) : {};
+      const id = localStorage.getItem(CURRENT_KEY);
+      if (!id) return {};
+      return readStore()[id]?.images ?? {};
     } catch { return {}; }
   });
   const [clusterColors, setClusterColors] = useState<Record<string, string>>(() => {
     try {
-      const saved = localStorage.getItem('strategos_cluster_colors');
-      return saved ? JSON.parse(saved) : {};
+      const id = localStorage.getItem(CURRENT_KEY);
+      if (!id) return {};
+      return readStore()[id]?.clusterColors ?? {};
     } catch { return {}; }
   });
   // Tracks acted units per phase; tagged with army so stale state is discarded on army change
@@ -280,32 +333,67 @@ function App() {
   );
 
   useEffect(() => {
-    try { localStorage.setItem('strategos_attachments', JSON.stringify(attachments)); } catch { /* ignore */ }
-  }, [attachments]);
-
-  useEffect(() => {
-    try { localStorage.setItem('strategos_cluster_colors', JSON.stringify(clusterColors)); } catch { /* ignore */ }
-  }, [clusterColors]);
-
-  useEffect(() => {
-    if (unitOrder.length > 0) {
-      try { localStorage.setItem('strategos_order', JSON.stringify(unitOrder)); } catch { /* ignore */ }
-    }
-  }, [unitOrder]);
+    if (!currentListId) return;
+    const store = readStore();
+    const entry = store[currentListId];
+    if (!entry) return;
+    store[currentListId] = { ...entry, attachments, clusterColors, order: unitOrder, images: unitImages };
+    writeStore(store);
+  }, [currentListId, attachments, clusterColors, unitOrder, unitImages]);
 
   function handleRawJson(raw: string) {
     try {
-      const parsed = parseNR(JSON.parse(raw) as NRJson);
+      const nrJson = JSON.parse(raw) as NRJson;
+      const parsed = parseNR(nrJson);
+      const newId = parsed.id;
+      const store = readStore();
+      const saved = store[newId];
+      const newAttachments = saved?.attachments ?? {};
+      const newColors = saved?.clusterColors ?? {};
+      const newImages = saved?.images ?? {};
+      const newOrder = buildOrder(parsed.units.map(u => u.id), saved?.order ?? null);
+      store[newId] = { raw, name: parsed.name, attachments: newAttachments, clusterColors: newColors, order: newOrder, images: newImages };
+      writeStore(store);
+      localStorage.setItem(CURRENT_KEY, newId);
       setArmy(parsed);
-      setAttachments({});
-      setClusterColors({});
-      setUnitOrder(parsed.units.map(u => u.id));
+      setCurrentListId(newId);
+      setAttachments(newAttachments);
+      setClusterColors(newColors);
+      setUnitOrder(newOrder);
+      setUnitImages(newImages);
       setPickerFor(null);
       setHeaderOpen(false);
-      try { localStorage.setItem('strategos_list', raw); } catch { /* ignore */ }
+      setSavedLists(prev => ({ ...prev, [newId]: parsed.name }));
     } catch (err) {
       alert('Could not parse JSON: ' + (err as Error).message);
     }
+  }
+
+  function handleSelectList(id: string) {
+    if (id === currentListId) { setHeaderOpen(false); return; }
+    const store = readStore();
+    const entry = store[id];
+    if (!entry) return;
+    try {
+      const parsed = parseNR(JSON.parse(entry.raw) as NRJson);
+      const order = buildOrder(parsed.units.map(u => u.id), entry.order);
+      localStorage.setItem(CURRENT_KEY, id);
+      setArmy(parsed);
+      setCurrentListId(id);
+      setAttachments(entry.attachments);
+      setClusterColors(entry.clusterColors);
+      setUnitOrder(order);
+      setUnitImages(entry.images);
+      setPickerFor(null);
+      setHeaderOpen(false);
+    } catch { /* ignore */ }
+  }
+
+  function handleDeleteList(id: string) {
+    const store = readStore();
+    delete store[id];
+    writeStore(store);
+    setSavedLists(prev => { const next = { ...prev }; delete next[id]; return next; });
   }
 
   // ── Drag ──────────────────────────────────────────────────────
@@ -388,7 +476,6 @@ function App() {
       const next = { ...prev };
       if (url) next[unitId] = url;
       else delete next[unitId];
-      try { localStorage.setItem('strategos_images', JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
   }
@@ -404,7 +491,7 @@ function App() {
   if (!army) {
     return (
       <div data-swiping={swipe !== null || undefined}>
-        <Header army={null} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} onRawJson={handleRawJson} />
+        <Header army={null} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} savedLists={savedLists} currentListId={currentListId} onSelectList={handleSelectList} onDeleteList={handleDeleteList} onImport={handleRawJson} />
         <div className={styles.content} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
           <div className={styles.empty}>
             <div className={styles.emptyTitle}>No army loaded</div>
@@ -431,7 +518,7 @@ function App() {
 
   return (
     <div data-swiping={swipe !== null || undefined}>
-      <Header army={army} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} onRawJson={handleRawJson} />
+      <Header army={army} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} savedLists={savedLists} currentListId={currentListId} onSelectList={handleSelectList} onDeleteList={handleDeleteList} onImport={handleRawJson} />
       <div className={styles.content} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
         <DndContext
           sensors={sensors}

@@ -26,6 +26,7 @@ interface NRCost {
 }
 
 interface NRSelection {
+  id?: string;
   name: string;
   type: string;
   entryGroupId?: string;
@@ -35,11 +36,11 @@ interface NRSelection {
   categories?: NRCategory[];
   costs?: NRCost[];
   rules?: NRRule[];
-
 }
 
 export interface NRJson {
   roster: {
+    id?: string;
     name?: string;
     costs: NRCost[];
     forces: Array<{ selections: NRSelection[] }>;
@@ -92,7 +93,7 @@ function dedup<T extends { name: string }>(items: T[]): T[] {
 
 function extractAbilities(selections: NRSelection[], out: Ability[]): void {
   for (const sub of selections) {
-    if (sub.group === 'Enhancements') continue;
+    if (sub.group?.startsWith('Enhancements')) continue;
     for (const prof of (sub.profiles ?? [])) {
       if (prof.typeName === 'Abilities') {
         out.push({
@@ -160,7 +161,7 @@ export function parseNR(json: NRJson): Army {
         OC: getChar(unitProfile, 'OC'),
       } : null;
 
-      const enhancementSel = (sel.selections ?? []).find(s => s.group === 'Enhancements');
+      const enhancementSel = (sel.selections ?? []).find(s => s.group?.startsWith('Enhancements'));
       const enhancementProfile = enhancementSel?.profiles?.find(p => p.typeName === 'Abilities');
       const enhancement: Ability | undefined = enhancementSel && enhancementProfile ? {
         name: enhancementSel.name,
@@ -168,7 +169,7 @@ export function parseNR(json: NRJson): Army {
       } : undefined;
 
       return {
-        id: `${idx}-${sel.name}`,
+        id: sel.id ?? `${idx}-${sel.name}`,
         name: sel.name,
         points: pts?.value ?? 0,
         isChar: keywords.includes('Character'),
@@ -183,6 +184,7 @@ export function parseNR(json: NRJson): Army {
     });
 
   return {
+    id: json.roster.id ?? json.roster.name ?? 'unknown',
     name: json.roster.name ?? 'My Army',
     points: json.roster.costs[0].value,
     units,

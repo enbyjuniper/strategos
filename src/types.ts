@@ -42,6 +42,7 @@ export interface Unit {
 }
 
 export interface Army {
+  id: string;
   name: string;
   points: number;
   units: Unit[];

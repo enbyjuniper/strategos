@@ -44,6 +44,30 @@
   min-width: 0;
 }
 
+.updateBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 1.875rem;
+  padding: 0 0.625rem;
+  background: none;
+  border: 0.0625rem solid var(--accent-dim);
+  color: var(--accent);
+  font-family: var(--ff);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: var(--glow);
+    border-color: var(--accent);
+  }
+}
+
 .brand {
   font-size: 0.8125rem;
   font-weight: 700;
@@ -114,7 +138,7 @@
   border-right: 0.0625rem solid var(--border);
   transform: translateX(-100%);
   transition: transform 0.25s ease;
-  overflow-y: auto;
+  overflow: hidden;
   touch-action: pan-y;
   display: flex;
   flex-direction: column;
@@ -126,6 +150,22 @@
   @media (max-width: 640px) {
     width: 100%;
   }
+}
+
+.slidingContainer {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow-y: auto;
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .panel {
@@ -306,4 +346,132 @@
 
 .fileInput {
   display: none;
+}
+
+// ── Lists sub-page ───────────────────────────────────────
+.listsHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 0.75rem 0.625rem;
+  border-bottom: 0.0625rem solid var(--border);
+  flex-shrink: 0;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  background: none;
+  border: 0.0625rem solid var(--border);
+  color: var(--txt2);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+  }
+}
+
+.listsTitle {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt2);
+}
+
+.listPanel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+.listEntries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.listRow {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+
+  &.listRowActive .listName {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+  }
+}
+
+.listName {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  background: transparent;
+  border: 0.0625rem solid var(--border);
+  color: var(--txt);
+  font-family: var(--ff);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition: background 0.1s, border-color 0.1s;
+  min-width: 0;
+
+  &:hover {
+    border-color: var(--accent-dim);
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+.listNameText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.activeBadge {
+  flex-shrink: 0;
+  font-family: var(--fm);
+  font-size: 0.4375rem;
+  color: var(--accent);
+  border: 0.0625rem solid var(--accent-dim);
+  padding: 0.0625rem 0.25rem;
+  letter-spacing: 0.06em;
+}
+
+.deleteBtn {
+  flex-shrink: 0;
+  width: 2rem;
+  background: transparent;
+  border: 0.0625rem solid rgba(224, 80, 80, 0.2);
+  color: rgba(224, 80, 80, 0.4);
+  font-size: 0.625rem;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+
+  &:hover {
+    background: rgba(224, 80, 80, 0.08);
+    color: #e05050;
+    border-color: rgba(224, 80, 80, 0.45);
+  }
+}
+
+.listsEmpty {
+  font-family: var(--fm);
+  font-size: 0.6875rem;
+  color: var(--txt3);
+  text-align: center;
+  padding: 1.5rem 0;
 }
