@@ -2,6 +2,7 @@ export type Phase = 'move' | 'shoot' | 'melee' | 'dur' | 'abil';
 
 export interface WeaponStats {
   name: string;
+  count?: number;
   Range?: string;
   A?: string;
   BS?: string;
@@ -27,13 +28,24 @@ export interface UnitStats {
   OC: string | null;
 }
 
+export interface ModelProfile {
+  name: string;
+  number?: number;
+  stats: UnitStats;
+  ranged: WeaponStats[];
+  melee: WeaponStats[];
+  keywords: string[];
+}
+
 export interface Unit {
   id: string;
   name: string;
   points: number;
+  modelCount?: number;
   isChar: boolean;
   keywords: string[];
   stats: UnitStats | null;
+  models?: ModelProfile[];
   ranged: WeaponStats[];
   melee: WeaponStats[];
   abilities: Ability[];

@@ -1,3 +1,5 @@
+@use "../styles/mixins" as *;
+
 .content {
   padding: 0 1rem 0;
 }
@@ -12,26 +14,22 @@
 }
 
 .action {
+  @include btn;
   display: block;
   width: 100%;
-  padding: 0.625rem 0.75rem;
-  background: transparent;
-  border: 0.0625rem solid var(--border);
   color: var(--txt);
-  font-family: var(--ff);
-  font-size: 0.75rem;
-  font-weight: 600;
   text-align: left;
-  cursor: pointer;
-  transition: background 0.1s;
   margin-bottom: 0.5rem;
-
-  &:hover { background: rgba(255, 255, 255, 0.04); }
 
   &.danger {
     color: #e05050;
     border-color: rgba(224, 80, 80, 0.3);
-    &:hover { background: rgba(224, 80, 80, 0.08); }
+    background: rgba(224, 80, 80, 0.04);
+    &:hover {
+      background: rgba(224, 80, 80, 0.08);
+      border-color: rgba(224, 80, 80, 0.45);
+      color: #e05050;
+    }
   }
 }
 
@@ -52,28 +50,14 @@
 }
 
 .item {
+  @include btn;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.5625rem 0.75rem;
-  background: transparent;
-  border: 0.0625rem solid var(--border);
   color: var(--txt);
-  font-family: var(--ff);
-  font-size: 0.75rem;
-  font-weight: 600;
   text-align: left;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  transition: background 0.1s, border-color 0.1s;
-
-  &:hover {
-    border-color: var(--accent-dim);
-    background: rgba(255, 255, 255, 0.03);
-  }
 }
 
 .name {
@@ -91,23 +75,6 @@
   flex-shrink: 0;
 }
 
-.charBadge {
-  font-family: var(--fm);
-  font-size: 0.5rem;
-  color: var(--char);
-  border: 0.0625rem solid var(--char);
-  padding: 0.0625rem 0.25rem;
-  letter-spacing: 0.06em;
-}
-
-.groupBadge {
-  font-family: var(--fm);
-  font-size: 0.5rem;
-  color: var(--txt2);
-  border: 0.0625rem solid var(--border);
-  padding: 0.0625rem 0.25rem;
-  letter-spacing: 0.06em;
-}
 
 .imageRow {
   display: flex;
@@ -140,18 +107,8 @@
 }
 
 .urlBtn {
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  border: 0.0625rem solid var(--border);
-  color: var(--txt2);
-  font-family: var(--ff);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  cursor: pointer;
+  @include btn;
   flex-shrink: 0;
-  transition: background 0.1s;
-
-  &:hover { background: rgba(255, 255, 255, 0.04); }
 }
 
 .empty {
@@ -177,19 +134,11 @@
 }
 
 .detachBtn {
+  @include btn-danger;
   flex-shrink: 0;
   padding: 0.1875rem 0.5rem;
-  background: transparent;
-  border: 0.0625rem solid rgba(224, 80, 80, 0.3);
   color: #e05050;
-  font-family: var(--ff);
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: background 0.1s;
-
-  &:hover { background: rgba(224, 80, 80, 0.08); }
+  border-color: rgba(224, 80, 80, 0.3);
 }
 
 .colorRow {

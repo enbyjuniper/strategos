@@ -1,14 +1,111 @@
+// ── Button base mixins ────────────────────────────────────
+
+// Square icon button: centered, no text formatting
+@mixin btn-icon {
+  background: color-mix(in srgb, var(--txt) 5%, transparent);
+  border: 0.0625rem solid var(--border);
+  color: var(--txt2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+    background: var(--glow);
+  }
+}
+
+// Text button: neutral outline, full shared type ramp
+@mixin btn {
+  background: color-mix(in srgb, var(--txt) 5%, transparent);
+  border: 0.0625rem solid var(--border);
+  color: var(--txt2);
+  cursor: pointer;
+  font-family: var(--ff);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0.75rem;
+  text-transform: uppercase;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+    background: var(--glow);
+  }
+}
+
+// Accent text button: accent outline, same type ramp
+@mixin btn-accent {
+  background: color-mix(in srgb, var(--txt) 5%, transparent);
+  border: 0.0625rem solid var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--ff);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0.75rem;
+  text-transform: uppercase;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover {
+    background: var(--glow);
+    border-color: var(--accent);
+  }
+}
+
+// Danger button: muted red, caller sets padding
+@mixin btn-danger {
+  background: rgba(224, 80, 80, 0.04);
+  border: 0.0625rem solid rgba(224, 80, 80, 0.2);
+  color: rgba(224, 80, 80, 0.4);
+  cursor: pointer;
+  font-family: var(--ff);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+
+  &:hover {
+    background: rgba(224, 80, 80, 0.08);
+    color: #e05050;
+    border-color: rgba(224, 80, 80, 0.45);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+
+@mixin count-badge {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
 @mixin pip-base {
   display: flex;
   flex-direction: column;
   align-items: center;
   flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0.25rem;
+  border-radius: 4px;
+
+  &.absent {
+    opacity: 0.3;
+  }
 }
 
 @mixin pip-label {
   font-family: var(--fm);
   font-size: 0.5rem;
-  color: var(--txt2);
+  color: var(--txt3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   line-height: 1;

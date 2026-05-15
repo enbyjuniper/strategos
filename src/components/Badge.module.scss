@@ -1,0 +1,31 @@
+.badge {
+  display: inline-block;
+  font-family: var(--fm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  flex-shrink: 0;
+  border-radius: 3px;
+  color: var(--badge-color, var(--txt2));
+  background: color-mix(
+    in srgb,
+    var(--badge-color, var(--txt2)) 18%,
+    transparent
+  );
+  padding-inline: 0.6em;
+  line-height: 1.75em;
+}
+
+// Extra top padding compensates for Share Tech Mono's descender space,
+// which makes uppercase glyphs appear to float high with symmetric padding.
+.small {
+  font-size: 0.35rem;
+}
+
+.regular {
+  font-size: 0.45rem;
+}
+
+.large {
+  font-size: 0.6rem;
+}

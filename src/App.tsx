@@ -10,6 +10,7 @@ import { parseNR } from './utils/parseNR';
 import { isLeader } from './utils/abilities';
 import type { NRJson } from './utils/parseNR';
 import { Header } from './components/Header';
+import { SideMenu } from './components/SideMenu';
 import { PhaseTabs } from './components/PhaseTabs';
 import { UnitCard } from './components/UnitCard';
 import { UnitSlot } from './components/UnitSlot';
@@ -26,28 +27,12 @@ const SWIPE_TRIGGER = 75; // px — change this to tune swipe sensitivity
 const SWIPE_SHOW = SWIPE_TRIGGER / 2; // pill starts appearing halfway to the trigger
 const SWIPE_LERP = 0.18; // exponential smoothing per frame — lower = more lag
 
-const CHAR_COLOR = { line: 'var(--char)', bg: 'rgba(240,192,96,0.06)' };
+const CLUSTER_COLORS = ['#4a9eff', '#b070ff', '#e8a020', '#e05050', '#00c8a0'];
 
-const CLUSTER_COLORS = [
-  { line: '#4a9eff', bg: 'rgba(74,158,255,0.06)' },
-  { line: '#b070ff', bg: 'rgba(176,112,255,0.06)' },
-  { line: '#e8a020', bg: 'rgba(232,160,32,0.06)' },
-  { line: '#e05050', bg: 'rgba(224,80,80,0.06)' },
-  { line: '#00c8a0', bg: 'rgba(0,200,160,0.06)' },
-];
-
-function colorForCluster(primaryId: string) {
+function colorForCluster(primaryId: string): string {
   let h = 0;
   for (const c of primaryId) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff;
   return CLUSTER_COLORS[h % CLUSTER_COLORS.length];
-}
-
-function hexToClusterColor(hex: string) {
-  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return { line: hex, bg: 'rgba(0,0,0,0.06)' };
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return { line: hex, bg: `rgba(${r},${g},${b},0.06)` };
 }
 
 interface ListEntry {
@@ -103,7 +88,23 @@ function migrate() {
 
 migrate();
 
+const THEME_KEY = 'strategos_theme';
+
 function App() {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem(THEME_KEY) as 'dark' | 'light') ?? 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  function toggleTheme() {
+    setTheme(t => {
+      const next = t === 'dark' ? 'light' : 'dark';
+      localStorage.setItem(THEME_KEY, next);
+      return next;
+    });
+  }
+
   const [currentListId, setCurrentListId] = useState<string | null>(() => localStorage.getItem(CURRENT_KEY));
   const [army, setArmy] = useState<Army | null>(() => {
     try {
@@ -442,7 +443,7 @@ function App() {
 
   function attachTo(unitId: string, primaryId: string) {
     setAttachments(prev => ({ ...prev, [primaryId]: [...(prev[primaryId] ?? []), unitId] }));
-    setClusterColors(prev => prev[primaryId] ? prev : { ...prev, [primaryId]: colorForCluster(primaryId).line });
+    setClusterColors(prev => prev[primaryId] ? prev : { ...prev, [primaryId]: colorForCluster(primaryId) });
     setPickerFor(null);
   }
 
@@ -491,7 +492,8 @@ function App() {
   if (!army) {
     return (
       <div data-swiping={swipe !== null || undefined}>
-        <Header army={null} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} savedLists={savedLists} currentListId={currentListId} onSelectList={handleSelectList} onDeleteList={handleDeleteList} onImport={handleRawJson} />
+        <Header army={null} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} theme={theme} onToggleTheme={toggleTheme} />
+        <SideMenu army={null} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} savedLists={savedLists} currentListId={currentListId} onSelectList={handleSelectList} onDeleteList={handleDeleteList} onImport={handleRawJson} />
         <div className={styles.content} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
           <div className={styles.empty}>
             <div className={styles.emptyTitle}>No army loaded</div>
@@ -518,7 +520,8 @@ function App() {
 
   return (
     <div data-swiping={swipe !== null || undefined}>
-      <Header army={army} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} savedLists={savedLists} currentListId={currentListId} onSelectList={handleSelectList} onDeleteList={handleDeleteList} onImport={handleRawJson} />
+      <Header army={army} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} theme={theme} onToggleTheme={toggleTheme} />
+      <SideMenu army={army} isOpen={headerOpen} onToggle={() => setHeaderOpen(o => !o)} savedLists={savedLists} currentListId={currentListId} onSelectList={handleSelectList} onDeleteList={handleDeleteList} onImport={handleRawJson} />
       <div className={styles.content} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
         <DndContext
           sensors={sensors}
@@ -543,13 +546,13 @@ function App() {
                     ...attached.filter(u => isLeader(u)),
                     ...attached.filter(u => !isLeader(u)),
                   ];
-                  const color = clusterColors[unit.id] ? hexToClusterColor(clusterColors[unit.id]) : colorForCluster(unit.id);
+                  const color = clusterColors[unit.id] ?? colorForCluster(unit.id);
                   return (
                     <SortableSlot key={id} id={id} className={styles.gridItem} indicator={indicatorFor(id)}>
                       <UnitSlot acted={actedIds.has(unit.id)} accent={color}>
-                        <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenImagePicker={() => setPickerFor({ unitId: unit.id, section: 'image' })} onOpenPicker={isLeader(unit) ? () => setPickerFor({ unitId: unit.id, section: 'cluster' }) : undefined} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} clusterNameColor={color.line} />
+                        <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenImagePicker={() => setPickerFor({ unitId: unit.id, section: 'image' })} onOpenPicker={isLeader(unit) ? () => setPickerFor({ unitId: unit.id, section: 'cluster' }) : undefined} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} clusterNameColor={color} />
                         {sortedAttached.map(u => (
-                          <UnitCard key={u.id} unit={u} phase={phase} imageUrl={unitImages[u.id]} onOpenImagePicker={() => setPickerFor({ unitId: u.id, section: 'image' })} onOpenPicker={isLeader(u) ? () => setPickerFor({ unitId: u.id, section: 'cluster' }) : undefined} acted={actedIds.has(u.id)} onToggleActed={() => toggleActed(u.id)} clusterNameColor={color.line} />
+                          <UnitCard key={u.id} unit={u} phase={phase} imageUrl={unitImages[u.id]} onOpenImagePicker={() => setPickerFor({ unitId: u.id, section: 'image' })} onOpenPicker={isLeader(u) ? () => setPickerFor({ unitId: u.id, section: 'cluster' }) : undefined} acted={actedIds.has(u.id)} onToggleActed={() => toggleActed(u.id)} clusterNameColor={color} />
                         ))}
                       </UnitSlot>
                     </SortableSlot>
@@ -558,7 +561,7 @@ function App() {
 
                 return (
                   <SortableSlot key={id} id={id} className={styles.gridItem} indicator={indicatorFor(id)}>
-                    <UnitSlot acted={actedIds.has(unit.id)} accent={unit.isChar ? CHAR_COLOR : undefined}>
+                    <UnitSlot acted={actedIds.has(unit.id)} accent={unit.isChar || unit.models?.some(m => m.keywords.includes('Character')) ? 'var(--char)' : undefined}>
                       <UnitCard unit={unit} phase={phase} imageUrl={unitImages[unit.id]} onOpenImagePicker={() => setPickerFor({ unitId: unit.id, section: 'image' })} onOpenPicker={isLeader(unit) ? () => setPickerFor({ unitId: unit.id, section: 'cluster' }) : undefined} acted={actedIds.has(unit.id)} onToggleActed={() => toggleActed(unit.id)} />
                     </UnitSlot>
                   </SortableSlot>
@@ -598,7 +601,7 @@ function App() {
           onReattach={newPrimaryId => reattach(pickerFor.unitId, newPrimaryId)}
           onAttach={bodyguardId => attachTo(bodyguardId, pickerFor.unitId)}
           onSetImage={url => setImage(pickerFor.unitId, url)}
-          clusterColor={clusterColors[pickerFor.unitId] ?? colorForCluster(pickerFor.unitId).line}
+          clusterColor={clusterColors[pickerFor.unitId] ?? colorForCluster(pickerFor.unitId)}
           onSetClusterColor={hex => setClusterColors(prev => ({ ...prev, [pickerFor.unitId]: hex }))}
         />
       )}

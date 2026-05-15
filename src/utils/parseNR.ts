@@ -1,4 +1,4 @@
-import type { Army, Unit, WeaponStats, Ability, UnitStats } from '../types';
+import type { Army, Unit, WeaponStats, Ability, UnitStats, ModelProfile } from '../types';
 
 interface NRCharacteristic {
   name: string;
@@ -29,6 +29,7 @@ interface NRSelection {
   id?: string;
   name: string;
   type: string;
+  number?: number;
   entryGroupId?: string;
   group?: string;
   profiles?: NRProfile[];
@@ -70,19 +71,29 @@ function weaponFromProfile(prof: NRProfile): WeaponStats {
   return w as unknown as WeaponStats;
 }
 
-function extractWeapons(selections: NRSelection[], ranged: WeaponStats[], melee: WeaponStats[]): void {
+function extractWeapons(selections: NRSelection[], ranged: WeaponStats[], melee: WeaponStats[], modelCount = 1): void {
   for (const sub of selections) {
     const subMelee = (sub.profiles ?? []).filter(p => p.typeName === 'Melee Weapons');
     const subRanged = (sub.profiles ?? []).filter(p => p.typeName === 'Ranged Weapons');
 
     // A single selection with 2+ profiles of the same type = "choose one" weapon modes.
     if (subMelee.length > 1) melee.push({ name: sub.name, profiles: subMelee.map(weaponFromProfile) });
-    else if (subMelee.length === 1) melee.push(weaponFromProfile(subMelee[0]));
+    else if (subMelee.length === 1) {
+      const w = weaponFromProfile(subMelee[0]);
+      const perModel = Math.round((sub.number ?? 1) / modelCount);
+      if (perModel > 1) w.count = perModel;
+      melee.push(w);
+    }
 
     if (subRanged.length > 1) ranged.push({ name: sub.name, profiles: subRanged.map(weaponFromProfile) });
-    else if (subRanged.length === 1) ranged.push(weaponFromProfile(subRanged[0]));
+    else if (subRanged.length === 1) {
+      const w = weaponFromProfile(subRanged[0]);
+      const perModel = Math.round((sub.number ?? 1) / modelCount);
+      if (perModel > 1) w.count = perModel;
+      ranged.push(w);
+    }
 
-    if (sub.selections) extractWeapons(sub.selections, ranged, melee);
+    if (sub.selections) extractWeapons(sub.selections, ranged, melee, modelCount);
   }
 }
 
@@ -137,6 +148,10 @@ export function parseNR(json: NRJson): Army {
       const subAbilities: Ability[] = [];
       extractAbilities(sel.selections ?? [], subAbilities);
 
+      const totalModels = sel.type === 'model'
+        ? (sel.number ?? 1)
+        : (sel.selections ?? []).filter(s => s.type === 'model').reduce((n, ms) => n + (ms.number ?? 1), 0) || 1;
+
       const ranged: WeaponStats[] = [];
       const melee: WeaponStats[] = [];
 
@@ -144,7 +159,7 @@ export function parseNR(json: NRJson): Army {
         if (prof.typeName === 'Ranged Weapons') ranged.push(weaponFromProfile(prof));
         if (prof.typeName === 'Melee Weapons') melee.push(weaponFromProfile(prof));
       }
-      extractWeapons(sel.selections ?? [], ranged, melee);
+      extractWeapons(sel.selections ?? [], ranged, melee, totalModels);
 
       const keywords = (sel.categories ?? [])
         .map(c => c.name)
@@ -168,13 +183,49 @@ export function parseNR(json: NRJson): Army {
         desc: (enhancementProfile.characteristics ?? []).find(c => c.name === 'Description')?.['$text'] ?? '',
       } : undefined;
 
+      const modelSels = (sel.selections ?? []).filter(s => s.type === 'model');
+      const extractedModels: ModelProfile[] = [];
+      for (const ms of modelSels) {
+        const up = (ms.profiles ?? []).find(p => p.typeName === 'Unit');
+        if (!up) continue;
+        const mRanged: WeaponStats[] = [];
+        const mMelee: WeaponStats[] = [];
+        for (const prof of (ms.profiles ?? [])) {
+          if (prof.typeName === 'Ranged Weapons') mRanged.push(weaponFromProfile(prof));
+          if (prof.typeName === 'Melee Weapons') mMelee.push(weaponFromProfile(prof));
+        }
+        extractWeapons(ms.selections ?? [], mRanged, mMelee, ms.number ?? 1);
+        const mKeywords = (ms.categories ?? [])
+          .map(c => c.name)
+          .filter(n => !n.startsWith('Faction:'));
+        extractedModels.push({
+          name: ms.name,
+          number: ms.number,
+          stats: {
+            M: getChar(up, 'M'),
+            T: getChar(up, 'T'),
+            Sv: getChar(up, 'SV'),
+            W: getChar(up, 'W'),
+            Ld: getChar(up, 'LD'),
+            OC: getChar(up, 'OC'),
+          },
+          ranged: dedup(mRanged),
+          melee: dedup(mMelee),
+          keywords: mKeywords,
+        });
+      }
+      const distinctModelNames = new Set(extractedModels.map(m => m.name));
+      const models = distinctModelNames.size > 1 ? extractedModels : undefined;
+
       return {
         id: sel.id ?? `${idx}-${sel.name}`,
         name: sel.name,
         points: pts?.value ?? 0,
+        modelCount: totalModels > 1 ? totalModels : undefined,
         isChar: keywords.includes('Character'),
         keywords,
         stats,
+        models,
         ranged: dedup(ranged),
         melee: dedup(melee),
         abilities: dedup([...profileAbilities, ...subAbilities]),

@@ -7,6 +7,11 @@
   & > * + * {
     border-top: 0.0625rem solid rgba(255, 255, 255, 0.07);
   }
+
+  &.hasAccent {
+    border-left: 0.1875rem solid var(--slot-accent);
+    background: color-mix(in srgb, var(--slot-accent) 6%, var(--mix));
+  }
 }
 
 .actedMark {

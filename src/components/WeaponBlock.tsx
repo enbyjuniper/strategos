@@ -1,4 +1,5 @@
 import type { WeaponStats } from '../types';
+import { Badge } from './Badge';
 import styles from './WeaponBlock.module.scss';
 
 interface Props {
@@ -11,7 +12,10 @@ function WeaponRow({ w }: { w: WeaponStats }) {
   const kw = w.Keywords && w.Keywords !== '-' ? w.Keywords : null;
   return (
     <>
-      <div className={styles.name}>{w.name}</div>
+      <div className={styles.name}>
+        {w.name}
+        {w.count && w.count > 1 && <span className={styles.count}>×{w.count}</span>}
+      </div>
       <div className={styles.row}>
         {w.Range && w.Range !== 'Melee' && (
           <div className={styles.pip}>
@@ -43,7 +47,7 @@ function WeaponRow({ w }: { w: WeaponStats }) {
       {kw && (
         <div className={styles.kwRow}>
           {kw.split(',').map(k => k.trim()).filter(Boolean).map(k => (
-            <span key={k} className={styles.kwPip}>{k}</span>
+            <Badge key={k} color="var(--abil)">{k}</Badge>
           ))}
         </div>
       )}

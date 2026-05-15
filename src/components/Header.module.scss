@@ -1,3 +1,5 @@
+@use "../styles/mixins" as *;
+
 .header {
   position: sticky;
   top: 0;
@@ -16,23 +18,17 @@
 }
 
 .toggle {
-  flex-shrink: 0;
+  @include btn-icon;
   width: 1.875rem;
   height: 1.875rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 0.0625rem solid var(--border);
   color: var(--txt);
   font-size: 0.9375rem;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+}
 
-  &:hover {
-    border-color: var(--accent-dim);
-    color: var(--accent);
-  }
+.themeBtn {
+  @include btn-icon;
+  width: 1.875rem;
+  height: 1.875rem;
 }
 
 .compact {
@@ -45,27 +41,15 @@
 }
 
 .updateBtn {
+  @include btn-accent;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 0.3rem;
   height: 1.875rem;
   padding: 0 0.625rem;
-  background: none;
-  border: 0.0625rem solid var(--accent-dim);
-  color: var(--accent);
-  font-family: var(--ff);
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-
-  &:hover {
-    background: var(--glow);
-    border-color: var(--accent);
-  }
 }
 
 .brand {
@@ -105,373 +89,4 @@
   font-family: var(--fm);
   font-size: 0.625rem;
   color: var(--txt2);
-}
-
-// ── Backdrop ─────────────────────────────────────────────
-.backdrop {
-  position: fixed;
-  top: 3rem;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 149;
-  background: rgba(0, 0, 0, 0.5);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
-
-  &.backdropVisible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-
-// ── Overlay sidebar ───────────────────────────────────────
-.sidebar {
-  position: fixed;
-  top: 3rem;
-  left: 0;
-  bottom: 0;
-  z-index: 150;
-  width: min(18rem, 85vw);
-  background: var(--bg);
-  border-right: 0.0625rem solid var(--border);
-  transform: translateX(-100%);
-  transition: transform 0.25s ease;
-  overflow: hidden;
-  touch-action: pan-y;
-  display: flex;
-  flex-direction: column;
-
-  &.sidebarOpen {
-    transform: translateX(0);
-  }
-
-  @media (max-width: 640px) {
-    width: 100%;
-  }
-}
-
-.slidingContainer {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-}
-
-.slide {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-  overflow-y: auto;
-  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.panel {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  gap: 1rem;
-  padding: 1rem 0.75rem 1.25rem;
-}
-
-// ── Army info (panel, army loaded) ───────────────────────
-.armyBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3125rem;
-}
-
-.armyTitle {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.armyMeta {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-family: var(--fm);
-  font-size: 0.6875rem;
-  color: var(--txt);
-  flex-wrap: wrap;
-
-  strong { color: var(--accent); }
-}
-
-.dot {
-  color: var(--txt2);
-}
-
-// ── Logo block (panel, no army) ──────────────────────────
-.logoBlock {
-  display: flex;
-  align-items: baseline;
-  gap: 0.625rem;
-}
-
-.logoBig {
-  font-size: 1.375rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.logoSub {
-  font-size: 0.6875rem;
-  font-family: var(--fm);
-  color: var(--txt2);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-// ── Detachment / Enhancements ────────────────────────────
-
-.infoSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  padding-top: 0.75rem;
-  border-top: 0.0625rem solid var(--border);
-}
-
-.infoLabel {
-  font-family: var(--fm);
-  font-size: 0.5rem;
-  color: var(--txt2);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.detachmentName {
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.ruleEntry {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1875rem;
-}
-
-.ruleName {
-  font-family: var(--fm);
-  font-size: 0.5625rem;
-  color: var(--txt);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.ruleDesc {
-  font-family: var(--fm);
-  font-size: 0.5625rem;
-  color: var(--txt2);
-  line-height: 1.5;
-}
-
-.enhancementEntry {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1875rem;
-}
-
-.enhancementHeader {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.enhancementName {
-  font-family: var(--fm);
-  font-size: 0.5625rem;
-  color: var(--abil);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.enhancementUnit {
-  font-family: var(--fm);
-  font-size: 0.5rem;
-  color: var(--txt2);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-// ── Import section ───────────────────────────────────────
-.importRow {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  gap: 0.375rem;
-  padding: 0.75rem 0.75rem 1.25rem;
-  border-top: 0.0625rem solid var(--border);
-}
-
-.importBtn {
-  width: 100%;
-  background: transparent;
-  border: 0.0625rem solid var(--accent-dim);
-  color: var(--accent);
-  font-family: var(--ff);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 0.4375rem 0.875rem;
-  cursor: pointer;
-  text-transform: uppercase;
-  transition: all 0.15s;
-
-  &:hover {
-    background: var(--glow);
-    border-color: var(--accent);
-  }
-}
-
-.hint {
-  font-family: var(--fm);
-  font-size: 0.625rem;
-  color: var(--txt2);
-}
-
-.fileInput {
-  display: none;
-}
-
-// ── Lists sub-page ───────────────────────────────────────
-.listsHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.875rem 0.75rem 0.625rem;
-  border-bottom: 0.0625rem solid var(--border);
-  flex-shrink: 0;
-}
-
-.backBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.625rem;
-  height: 1.625rem;
-  background: none;
-  border: 0.0625rem solid var(--border);
-  color: var(--txt2);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: border-color 0.15s, color 0.15s;
-
-  &:hover {
-    border-color: var(--accent-dim);
-    color: var(--accent);
-  }
-}
-
-.listsTitle {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--txt2);
-}
-
-.listPanel {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.75rem;
-}
-
-.listEntries {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.listRow {
-  display: flex;
-  align-items: stretch;
-  gap: 0.25rem;
-
-  &.listRowActive .listName {
-    border-color: var(--accent-dim);
-    color: var(--accent);
-  }
-}
-
-.listName {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.5rem 0.625rem;
-  background: transparent;
-  border: 0.0625rem solid var(--border);
-  color: var(--txt);
-  font-family: var(--ff);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  transition: background 0.1s, border-color 0.1s;
-  min-width: 0;
-
-  &:hover {
-    border-color: var(--accent-dim);
-    background: rgba(255, 255, 255, 0.03);
-  }
-}
-
-.listNameText {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-
-.activeBadge {
-  flex-shrink: 0;
-  font-family: var(--fm);
-  font-size: 0.4375rem;
-  color: var(--accent);
-  border: 0.0625rem solid var(--accent-dim);
-  padding: 0.0625rem 0.25rem;
-  letter-spacing: 0.06em;
-}
-
-.deleteBtn {
-  flex-shrink: 0;
-  width: 2rem;
-  background: transparent;
-  border: 0.0625rem solid rgba(224, 80, 80, 0.2);
-  color: rgba(224, 80, 80, 0.4);
-  font-size: 0.625rem;
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
-
-  &:hover {
-    background: rgba(224, 80, 80, 0.08);
-    color: #e05050;
-    border-color: rgba(224, 80, 80, 0.45);
-  }
-}
-
-.listsEmpty {
-  font-family: var(--fm);
-  font-size: 0.6875rem;
-  color: var(--txt3);
-  text-align: center;
-  padding: 1.5rem 0;
 }

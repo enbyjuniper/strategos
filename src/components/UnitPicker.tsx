@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Army, Attachments } from '../types';
 import { isLeader } from '../utils/abilities';
+import { Badge } from './Badge';
 import { BottomSheet } from './BottomSheet';
 import styles from './UnitPicker.module.scss';
 
@@ -205,8 +206,8 @@ function UnitList({ units, attachments, onSelect }: {
           <button key={u.id} className={styles.item} onClick={() => onSelect(u.id)}>
             <span className={u.isChar ? styles.nameChar : styles.name}>{u.name}</span>
             <span className={styles.badges}>
-              {groupSize > 0 && <span className={styles.groupBadge}>+{groupSize}</span>}
-              {u.isChar && <span className={styles.charBadge}>CHAR</span>}
+              {groupSize > 0 && <Badge borderColor="var(--border)">+{groupSize}</Badge>}
+              {u.isChar && <Badge color="var(--char)">CHAR</Badge>}
             </span>
           </button>
         );

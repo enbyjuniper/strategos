@@ -1,4 +1,6 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -8,26 +10,48 @@
   font-size: 20px;
 
   --bg: #0a0c0f;
-  --panel: #111318;
-  --card: #141820;
-  --border: #1e2530;
-  --accent: #00c8a0;
-  --accent-dim: #007d65;
-  --glow: rgba(0, 200, 160, 0.10);
-  --txt: #e8eaf0;
-  --txt2: #7a8599;
-  --txt3: #3d4558;
-  --move: #00c8a0;
-  --shoot: #4a9eff;
-  --melee: #e05050;
-  --dur: #b070ff;
-  --abil: #e8a020;
-  --char: #f0c060;
-  --ff: 'Rajdhani', sans-serif;
-  --fm: 'Share Tech Mono', monospace;
+  --panel: #12161e;
+  --card: #181e2a;
+  --border: #2a3448;
+  --accent: #00e8b8;
+  --accent-dim: #00a882;
+  --glow: rgba(0, 232, 184, 0.12);
+  --txt: #f0f2f8;
+  --txt2: #a8bedd;
+  --txt3: #6b7fa0;
+  --move: #00e8b8;
+  --shoot: #5aaeff;
+  --melee: #f06060;
+  --dur: #c080ff;
+  --abil: #f0b030;
+  --char: #f8d070;
+  --mix: var(--bg);
+  --ff: "Rajdhani", sans-serif;
+  --fm: "Share Tech Mono", monospace;
 }
 
-html, body {
+[data-theme="light"] {
+  --bg: #d8dde8;
+  --panel: #c8cedd;
+  --card: #eaecf4;
+  --border: #8898b4;
+  --accent: #007050;
+  --accent-dim: #004e38;
+  --glow: rgba(0, 112, 80, 0.12);
+  --txt: #0c1826;
+  --txt2: #263a58;
+  --txt3: #4e6480;
+  --move: #006e48;
+  --shoot: #1050a0;
+  --melee: #a01010;
+  --dur: #5a10a0;
+  --abil: #885000;
+  --char: #724000;
+  --mix: var(--card);
+}
+
+html,
+body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--txt);
