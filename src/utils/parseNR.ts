@@ -102,6 +102,22 @@ function dedup<T extends { name: string }>(items: T[]): T[] {
   return items.filter(item => seen.has(item.name) ? false : (seen.add(item.name), true));
 }
 
+function collectGrantedKeywords(selections: NRSelection[]): string[] {
+  const result: string[] = [];
+  for (const sub of selections) {
+    if (sub.type === 'upgrade') {
+      for (const cat of (sub.categories ?? [])) {
+        const n = cat.name;
+        if (!n.startsWith('Faction:') && !n.includes('Weapon') && !n.includes('Modifier')) {
+          result.push(n);
+        }
+      }
+    }
+    if (sub.selections) result.push(...collectGrantedKeywords(sub.selections));
+  }
+  return result;
+}
+
 function extractAbilities(selections: NRSelection[], out: Ability[]): void {
   for (const sub of selections) {
     if (sub.group?.startsWith('Enhancements')) continue;
@@ -217,6 +233,8 @@ export function parseNR(json: NRJson): Army {
       const distinctModelNames = new Set(extractedModels.map(m => m.name));
       const models = distinctModelNames.size > 1 ? extractedModels : undefined;
 
+      const grantedKeywords = [...new Set(collectGrantedKeywords(sel.selections ?? []))];
+
       return {
         id: sel.id ?? `${idx}-${sel.name}`,
         name: sel.name,
@@ -231,6 +249,7 @@ export function parseNR(json: NRJson): Army {
         abilities: dedup([...profileAbilities, ...subAbilities]),
         rules: dedup(ruleAbilities),
         enhancement,
+        grantedKeywords,
       };
     });
 

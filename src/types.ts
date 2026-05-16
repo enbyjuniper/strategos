@@ -51,6 +51,7 @@ export interface Unit {
   abilities: Ability[];
   rules: Ability[];
   enhancement?: Ability;
+  grantedKeywords?: string[];
 }
 
 export interface Army {

@@ -10,8 +10,10 @@
   background: color-mix(
     in srgb,
     var(--badge-color, var(--txt2)) 18%,
-    transparent
+    var(--card)
   );
+  border: 1px solid
+    color-mix(in srgb, var(--badge-color, var(--txt2)) 50%, var(--card));
   padding-inline: 0.6em;
   line-height: 1.75em;
 }
@@ -27,5 +29,5 @@
 }
 
 .large {
-  font-size: 0.6rem;
+  font-size: 0.55rem;
 }

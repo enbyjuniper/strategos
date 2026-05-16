@@ -1,4 +1,4 @@
-import { ImageIcon, LinkIcon } from "@phosphor-icons/react";
+import { ImageIcon, LinkIcon, CrownSimpleIcon } from "@phosphor-icons/react";
 import type { Unit, Phase } from "../types";
 import { getInv, getFNP, isKeyword } from "../utils/abilities";
 import { renderRichText } from "../utils/richText";
@@ -53,8 +53,6 @@ interface Props {
   onOpenImagePicker?: () => void;
   onOpenPicker?: () => void;
   imageUrl?: string;
-  acted?: boolean;
-  onToggleActed?: () => void;
   clusterNameColor?: string;
 }
 
@@ -64,8 +62,6 @@ export function UnitCard({
   onOpenImagePicker,
   onOpenPicker,
   imageUrl,
-  acted,
-  onToggleActed,
   clusterNameColor,
 }: Props) {
   if (!unit.stats) return null;
@@ -73,6 +69,9 @@ export function UnitCard({
   const inv = getInv(unit.abilities);
   const fnp = getFNP([...unit.abilities, ...unit.rules]);
   const regAbilities = unit.abilities.filter((a) => !isKeyword(a.name));
+
+  const grantedKeywords = unit.grantedKeywords ?? [];
+  const isWarlord = grantedKeywords.includes("Warlord");
 
   const unitTypes = unit.keywords.filter((k) => UNIT_TYPES.has(k));
   const tagPool = [
@@ -102,14 +101,13 @@ export function UnitCard({
     styles.card,
     imageUrl ? styles.hasImage : "",
     overlayTags.length > 0 ? styles.hasCornerOverlay : "",
-    acted ? styles.acted : "",
     isInactive ? styles.inactive : "",
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <div className={cardClass} onClick={onToggleActed}>
+    <div className={cardClass}>
       {overlayTags.length > 0 && (
         <div className={`${styles.cornerOverlay} ${overlayClass}`}>
           {overlayTags.map((t) => (
@@ -143,6 +141,13 @@ export function UnitCard({
                 <span className={styles.count}> ×{unit.modelCount}</span>
               )}
             </div>
+            {isWarlord && (
+              <CrownSimpleIcon
+                size={12}
+                weight="fill"
+                className={styles.warlordCrown}
+              />
+            )}
             {onOpenImagePicker && (
               <button
                 className={styles.button}
@@ -152,7 +157,6 @@ export function UnitCard({
                   onOpenImagePicker();
                 }}
                 title="Set unit image"
-                disabled={acted}
               >
                 <ImageIcon size={16} weight="fill" />
               </button>
@@ -160,17 +164,12 @@ export function UnitCard({
             {onOpenPicker && (
               <button
                 className={styles.button}
-                onPointerDown={(e) => {
-                  if (!acted) e.stopPropagation();
-                }}
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
-                  if (!acted) {
-                    e.stopPropagation();
-                    onOpenPicker();
-                  }
+                  e.stopPropagation();
+                  onOpenPicker();
                 }}
                 title="Manage cluster"
-                disabled={acted}
               >
                 <LinkIcon size={16} weight="bold" />
               </button>
@@ -178,7 +177,7 @@ export function UnitCard({
           </div>
           <div className={styles.topRight}>
             {unitTypes.map((t) => (
-              <Badge size="regular" key={t} color={TYPE_COLOR[t]}>
+              <Badge size="large" key={t} color={TYPE_COLOR[t]}>
                 {t}
               </Badge>
             ))}
@@ -402,7 +401,10 @@ export function UnitCard({
             </div>
             <div className={styles.keywords}>
               {unit.keywords.map((k) => (
-                <Badge size="small" key={k}>
+                <Badge key={k}>{k}</Badge>
+              ))}
+              {grantedKeywords.map((k) => (
+                <Badge key={k} color="#c9a115">
                   {k}
                 </Badge>
               ))}

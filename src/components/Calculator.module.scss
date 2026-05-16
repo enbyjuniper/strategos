@@ -1,0 +1,403 @@
+@use "../styles/mixins" as *;
+
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0.75rem 0.75rem 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+// ── Section card ─────────────────────────────────────────────────────────────
+
+.section {
+  background: var(--card);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sectionTitle {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+// ── Selects ──────────────────────────────────────────────────────────────────
+
+.selects {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.select {
+  width: 100%;
+  background: var(--panel);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--txt);
+  font-family: var(--ff);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7fa0'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.5rem;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  option {
+    background: var(--panel);
+    color: var(--txt);
+  }
+}
+
+// ── Unit metadata ────────────────────────────────────────────────────────────
+
+.meta {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--txt3);
+  line-height: 1.5;
+}
+
+.defStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  font-family: var(--fm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--txt2);
+}
+
+.defSpecial {
+  color: var(--dur);
+}
+
+.avgNote {
+  font-size: 0.5rem;
+  color: var(--txt3);
+  letter-spacing: 0.05em;
+}
+
+// ── Result breakdown ─────────────────────────────────────────────────────────
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 4rem 1fr auto 3.5rem;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0;
+  border-bottom: 0.0625rem solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.rowLabel {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt3);
+}
+
+.rowDetail {
+  font-family: var(--fm);
+  font-size: 0.6875rem;
+  color: var(--txt2);
+}
+
+.rowArrow {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--txt3);
+}
+
+.rowValue {
+  font-family: var(--fm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--txt);
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.0625rem;
+}
+
+.rowCrit {
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--txt3);
+}
+
+// ── Total ────────────────────────────────────────────────────────────────────
+
+.total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 0.125rem solid var(--accent);
+}
+
+.totalLabel {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt2);
+}
+
+.totalValue {
+  font-family: var(--fm);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.totalOf {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--txt3);
+}
+
+// ── Keyword badges ───────────────────────────────────────────────────────────
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.125rem;
+}
+
+.badge {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.1875rem 0.375rem;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--shoot) 15%, transparent);
+  color: var(--shoot);
+  border: 0.0625rem solid color-mix(in srgb, var(--shoot) 40%, transparent);
+}
+
+// ── Weapon customisation ─────────────────────────────────────────────────────
+
+.customize {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding-top: 0.375rem;
+  border-top: 0.0625rem solid var(--border);
+}
+
+.customizeLabel {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--txt3);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+}
+
+.statHeader {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  text-align: center;
+}
+
+.statInput {
+  width: 100%;
+  min-width: 0;
+  background: var(--bg);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--txt);
+  font-family: var(--fm);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.3rem 0.1875rem;
+  transition: border-color 0.1s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+.critRow {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.critItem {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--txt3);
+  cursor: default;
+
+  span:last-child {
+    color: var(--txt2);
+    font-weight: 700;
+  }
+}
+
+.critInput {
+  width: 1.75rem;
+  background: var(--bg);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--txt);
+  font-family: var(--fm);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.25rem 0.125rem;
+  transition: border-color 0.1s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+.kwRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.kwToggle {
+  font-family: var(--ff);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.4375rem;
+  border-radius: 0.25rem;
+  border: 0.0625rem solid var(--border);
+  background: transparent;
+  color: var(--txt3);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+
+  &[data-active] {
+    background: color-mix(in srgb, var(--shoot) 15%, transparent);
+    color: var(--shoot);
+    border-color: color-mix(in srgb, var(--shoot) 40%, transparent);
+  }
+}
+
+.rerollRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rerollLabel {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--txt3);
+  white-space: nowrap;
+  min-width: 5.5rem;
+}
+
+.rerollBtns {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.blastNote {
+  font-family: var(--fm);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--txt3);
+  padding: 0.2rem 0.4375rem;
+  border-radius: 0.25rem;
+  border: 0.0625rem solid var(--border);
+}
+
+.sustainedInput {
+  width: 2rem;
+  background: var(--bg);
+  border: 0.0625rem solid var(--shoot);
+  border-radius: 0.25rem;
+  color: var(--txt);
+  font-family: var(--fm);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.15rem 0.25rem;
+
+  &:focus { outline: none; }
+}
+
+// ── Hint ─────────────────────────────────────────────────────────────────────
+
+.hint {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 0.0625rem solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 0.25rem;
+  padding: 0.3rem 0.5rem;
+}
+
+// ── Invalid / empty ──────────────────────────────────────────────────────────
+
+.invalid {
+  font-family: var(--fm);
+  font-size: 0.625rem;
+  color: var(--melee);
+}
+
+.empty {
+  font-family: var(--fm);
+  font-size: 0.625rem;
+  color: var(--txt3);
+  text-align: center;
+  padding: 2rem 1rem;
+}

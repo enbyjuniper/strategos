@@ -25,6 +25,18 @@
   font-size: 0.9375rem;
 }
 
+.navBtn {
+  @include btn-icon;
+  width: 1.875rem;
+  height: 1.875rem;
+  color: var(--txt3);
+  transition: color 0.15s;
+
+  &[data-active] {
+    color: var(--accent);
+  }
+}
+
 .themeBtn {
   @include btn-icon;
   width: 1.875rem;
