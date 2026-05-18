@@ -1,5 +1,52 @@
 @use "../styles/mixins" as *;
 
+// ── Shared placeholders ───────────────────────────────────────────────────────
+
+%input-base {
+  background: var(--bg);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--txt);
+  font-family: var(--fm);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: center;
+  transition: border-color 0.1s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+%kw-item {
+  color: var(--txt);
+  font-family: var(--fm);
+  padding: 0 0.4375rem;
+  border: 0.0625rem solid var(--border);
+
+  height: 1.1rem;
+  box-sizing: border-box;
+  border-radius: 0.25rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+%btn-base {
+  font-family: var(--ff);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--txt3);
+  cursor: pointer;
+}
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+
 .page {
   max-width: 40rem;
   margin: 0 auto;
@@ -62,6 +109,35 @@
   option {
     background: var(--panel);
     color: var(--txt);
+  }
+}
+
+.selectMulti {
+  width: 100%;
+  background: var(--panel);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--txt);
+  font-family: var(--ff);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  option {
+    background: var(--panel);
+    color: var(--txt);
+    padding: 0.3rem 0.5rem;
+
+    &:checked {
+      background: color-mix(in srgb, var(--shoot) 20%, var(--panel));
+      color: var(--shoot);
+    }
   }
 }
 
@@ -147,11 +223,19 @@
   gap: 0.0625rem;
 }
 
-.rowCrit {
+// Shared: small muted sub-labels inside result rows
+.rowCrit,
+.rowPct {
   font-size: 0.5rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
   color: var(--txt3);
+}
+
+.rowCrit {
+  letter-spacing: 0.05em;
+}
+.rowPct {
+  letter-spacing: 0.03em;
 }
 
 // ── Total ────────────────────────────────────────────────────────────────────
@@ -189,6 +273,29 @@
   color: var(--txt3);
 }
 
+.extraStats {
+  font-family: var(--fm);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--txt3);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.1875rem;
+}
+
+.configWeaponName {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--txt2);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
 // ── Keyword badges ───────────────────────────────────────────────────────────
 
 .badges {
@@ -224,6 +331,23 @@
   font-family: var(--fm);
   font-size: 0.5625rem;
   color: var(--txt3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resetBtn {
+  @extend %btn-base;
+  padding: 0.15rem 0.375rem;
+  border: 0.0625rem solid var(--border);
+  transition:
+    color 0.1s,
+    border-color 0.1s;
+
+  &:hover {
+    color: var(--txt2);
+    border-color: var(--txt3);
+  }
 }
 
 .statGrid {
@@ -242,23 +366,10 @@
 }
 
 .statInput {
+  @extend %input-base;
   width: 100%;
   min-width: 0;
-  background: var(--bg);
-  border: 0.0625rem solid var(--border);
-  border-radius: 0.25rem;
-  color: var(--txt);
-  font-family: var(--fm);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-align: center;
   padding: 0.3rem 0.1875rem;
-  transition: border-color 0.1s;
-
-  &:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
 }
 
 .critRow {
@@ -283,22 +394,9 @@
 }
 
 .critInput {
+  @extend %input-base;
   width: 1.75rem;
-  background: var(--bg);
-  border: 0.0625rem solid var(--border);
-  border-radius: 0.25rem;
-  color: var(--txt);
-  font-family: var(--fm);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-align: center;
   padding: 0.25rem 0.125rem;
-  transition: border-color 0.1s;
-
-  &:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
 }
 
 .kwRow {
@@ -308,19 +406,23 @@
   align-items: center;
 }
 
+.kwGroup,
+.rerollBtns {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.kwGroup {
+  align-items: center;
+}
+
 .kwToggle {
-  font-family: var(--ff);
-  font-size: 0.5rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  padding: 0.2rem 0.4375rem;
-  border-radius: 0.25rem;
-  border: 0.0625rem solid var(--border);
-  background: transparent;
-  color: var(--txt3);
-  cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  @extend %btn-base;
+  @extend %kw-item;
+  transition:
+    background 0.1s,
+    color 0.1s,
+    border-color 0.1s;
 
   &[data-active] {
     background: color-mix(in srgb, var(--shoot) 15%, transparent);
@@ -343,35 +445,17 @@
   min-width: 5.5rem;
 }
 
-.rerollBtns {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.blastNote {
-  font-family: var(--fm);
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: var(--txt3);
-  padding: 0.2rem 0.4375rem;
-  border-radius: 0.25rem;
-  border: 0.0625rem solid var(--border);
-}
-
 .sustainedInput {
+  @extend %kw-item;
   width: 2rem;
   background: var(--bg);
   border: 0.0625rem solid var(--shoot);
-  border-radius: 0.25rem;
-  color: var(--txt);
-  font-family: var(--fm);
-  font-size: 0.6875rem;
-  font-weight: 700;
   text-align: center;
-  padding: 0.15rem 0.25rem;
+  padding: 0 0.25rem;
 
-  &:focus { outline: none; }
+  &:focus {
+    outline: none;
+  }
 }
 
 // ── Hint ─────────────────────────────────────────────────────────────────────
@@ -388,15 +472,17 @@
 
 // ── Invalid / empty ──────────────────────────────────────────────────────────
 
-.invalid {
+.invalid,
+.empty {
   font-family: var(--fm);
   font-size: 0.625rem;
+}
+
+.invalid {
   color: var(--melee);
 }
 
 .empty {
-  font-family: var(--fm);
-  font-size: 0.625rem;
   color: var(--txt3);
   text-align: center;
   padding: 2rem 1rem;

@@ -23,6 +23,7 @@ export interface CalcOptions {
   rapidFireBonus?: number;  // extra attacks from Rapid Fire X at half range
   meltaBonus?: number;      // extra damage from Melta X at half range
   blastBonus?: number;      // extra attacks from Blast (floor(models / 5))
+  benefitOfCover?: boolean; // manual cover toggle (stacks with indirect auto-cover)
 }
 
 export interface CombatResult {
@@ -44,6 +45,7 @@ export interface CombatResult {
   expectedDamage: number;
   expectedModelsKilled: number;
   benefitOfCover: boolean;
+  ignoresCover: boolean;
   lance: boolean;
   heavy: boolean;
   rapidFireBonus: number;
@@ -244,13 +246,17 @@ export function calcCombat(
   const heavy = kws.includes('HEAVY');
   const sustainedHitsX = (() => {
     for (const k of kws) {
-      const m = k.match(/^SUSTAINED HITS (\d+)$/);
-      if (m) return parseInt(m[1]);
+      const m = k.match(/^SUSTAINED HITS (\S+)$/);
+      if (m) {
+        const v = parseDice(m[1]);
+        return isNaN(v) ? 0 : v;
+      }
     }
     return 0;
   })();
   const twinLinked = kws.includes('TWIN-LINKED');
   const indirect = kws.includes('INDIRECT FIRE');
+  const ignoresCover = kws.includes('IGNORES COVER');
 
   const eA   = parseDice(weapon.A) + rapidFireBonus + blastBonus;
   let damDist = damageDistribution(weapon.D);
@@ -270,7 +276,7 @@ export function calcCombat(
     effectiveSave: 7, expectedWoundsAfterSave: 0, expectedCritWounds: 0,
     fnpThresh: defender.fnp, expectedFinalWounds: 0,
     avgDamagePerWound: 0, expectedDamage: 0, expectedModelsKilled: 0,
-    benefitOfCover: false, lance: false, heavy: false,
+    benefitOfCover: false, ignoresCover: false, lance: false, heavy: false,
     rapidFireBonus: 0, meltaBonus: 0, blastBonus: 0,
     torrent, lethalHits, devastatingWounds, sustainedHitsX, twinLinked,
     critHitThresh, critWoundThresh, rerollHits, rerollWounds,
@@ -361,7 +367,8 @@ export function calcCombat(
   // ── Save roll ────────────────────────────────────────────────────────────
   // Benefit of Cover: +1 to armour save (not inv). Does not apply to 3+ or
   // better saves against AP 0 weapons.
-  const benefitOfCover = indirect && !(defender.Sv <= 3 && AP === 0);
+  const coverRequested = indirect || (options?.benefitOfCover ?? false);
+  const benefitOfCover = coverRequested && !ignoresCover && !(defender.Sv <= 3 && AP === 0);
   const coverMod = benefitOfCover ? 1 : 0;
   // AP is negative (e.g. -2), so effectiveSave = Sv - AP raises the needed roll
   const effectiveSvFromArmor = Math.min(7, defender.Sv - AP - coverMod);
@@ -405,7 +412,7 @@ export function calcCombat(
     avgDamagePerWound: eD,
     expectedDamage,
     expectedModelsKilled,
-    benefitOfCover, lance, heavy,
+    benefitOfCover, ignoresCover, lance, heavy,
     rapidFireBonus, meltaBonus, blastBonus,
     torrent,
     lethalHits,

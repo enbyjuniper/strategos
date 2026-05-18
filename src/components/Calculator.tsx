@@ -30,13 +30,21 @@ interface WeaponConfig {
   indirectFire: boolean;
   sustainedHits: boolean;
   sustainedN: string;
+  rapidFire: boolean;
+  rapidFireN: string;
+  melta: boolean;
+  meltaN: string;
+  blast: boolean;
   critHit: string; // crit hit threshold (default "6")
   critWound: string; // crit wound threshold (default "6")
   rerollHits: "none" | "ones" | "all" | "noncrits";
   rerollWounds: "none" | "ones" | "all" | "noncrits";
-  halfRange: boolean; // rapid fire / melta: within half range
+  lance: boolean;
   lanceCharged: boolean; // lance: bearer charged this turn
+  heavy: boolean;
   heavyStationary: boolean; // heavy: unit remained stationary
+  halfRange: boolean;
+  ignoresCover: boolean;
 }
 
 const KW_TOGGLES: { key: keyof WeaponConfig; label: string }[] = [
@@ -45,8 +53,9 @@ const KW_TOGGLES: { key: keyof WeaponConfig; label: string }[] = [
   { key: "twinLinked", label: "Twin-linked" },
   { key: "torrent", label: "Torrent" },
   { key: "indirectFire", label: "Indirect" },
-  { key: "lanceCharged", label: "Lance" },
-  { key: "heavyStationary", label: "Heavy" },
+  { key: "lance", label: "Lance" },
+  { key: "heavy", label: "Heavy" },
+  { key: "ignoresCover", label: "Ignores Cover" },
 ];
 
 // Keywords managed by toggles — preserved from base if not in this set
@@ -58,6 +67,10 @@ const MANAGED_KWS = new Set([
   "INDIRECT FIRE",
   "LANCE",
   "HEAVY",
+  "IGNORES COVER",
+  "BLAST",
+  "LANCE",
+  "HEAVY",
 ]);
 
 function initConfig(weapon: WeaponStats): WeaponConfig {
@@ -67,7 +80,9 @@ function initConfig(weapon: WeaponStats): WeaponConfig {
     .map((k) => k.trim())
     .filter(Boolean);
   const kwSet = new Set(parts);
-  const sustained = parts.find((k) => /^SUSTAINED HITS \d+$/.test(k));
+  const sustained = parts.find((k) => /^SUSTAINED HITS \S+$/.test(k));
+  const rfKw = parts.find((k) => /^RAPID FIRE \d+$/.test(k));
+  const meltaKw = parts.find((k) => /^MELTA \d+$/.test(k));
   return {
     A: "",
     skill: "",
@@ -81,13 +96,21 @@ function initConfig(weapon: WeaponStats): WeaponConfig {
     indirectFire: kwSet.has("INDIRECT FIRE"),
     sustainedHits: sustained !== undefined,
     sustainedN: sustained ? (sustained.split(" ")[2] ?? "1") : "1",
-    critHit: "6",
-    critWound: "6",
+    rapidFire: rfKw !== undefined,
+    rapidFireN: rfKw ? (rfKw.split(" ")[2] ?? "1") : "",
+    melta: meltaKw !== undefined,
+    meltaN: meltaKw ? (meltaKw.split(" ")[1] ?? "1") : "",
+    blast: kwSet.has("BLAST"),
+    critHit: "",
+    critWound: "",
     rerollHits: "none",
     rerollWounds: "none",
-    halfRange: false,
+    lance: kwSet.has("LANCE"),
     lanceCharged: false,
+    heavy: kwSet.has("HEAVY"),
     heavyStationary: false,
+    halfRange: false,
+    ignoresCover: kwSet.has("IGNORES COVER"),
   };
 }
 
@@ -103,9 +126,11 @@ function buildEffectiveWeapon(
   if (cfg.sustainedHits) kws.push(`SUSTAINED HITS ${cfg.sustainedN || "1"}`);
   if (cfg.twinLinked) kws.push("TWIN-LINKED");
   if (cfg.indirectFire) kws.push("INDIRECT FIRE");
-  if (cfg.lanceCharged) kws.push("LANCE");
-  if (cfg.heavyStationary) kws.push("HEAVY");
-  // Preserve unmanaged base keywords (e.g. RAPID FIRE, BLAST, PISTOL…)
+  if (cfg.ignoresCover) kws.push("IGNORES COVER");
+  if (cfg.blast) kws.push("BLAST");
+  if (cfg.lance && cfg.lanceCharged) kws.push("LANCE");
+  if (cfg.heavy && cfg.heavyStationary) kws.push("HEAVY");
+  // Preserve unmanaged base keywords (e.g. RAPID FIRE, PISTOL…)
   for (const k of (base.Keywords ?? "")
     .toUpperCase()
     .split(",")
@@ -132,9 +157,17 @@ interface DefenderConfig {
   W: string;
   inv: string;
   fnp: string;
+  cover: boolean;
 }
 
-const EMPTY_DEF: DefenderConfig = { T: "", Sv: "", W: "", inv: "", fnp: "" };
+const EMPTY_DEF: DefenderConfig = {
+  T: "",
+  Sv: "",
+  W: "",
+  inv: "",
+  fnp: "",
+  cover: false,
+};
 
 function defenderConfigFromProfile(profile: DefenderProfile): DefenderConfig {
   return {
@@ -143,6 +176,7 @@ function defenderConfigFromProfile(profile: DefenderProfile): DefenderConfig {
     W: Number.isInteger(profile.W) ? String(profile.W) : profile.W.toFixed(2),
     inv: profile.inv !== null ? String(profile.inv) : "",
     fnp: profile.fnp !== null ? String(profile.fnp) : "",
+    cover: false,
   };
 }
 
@@ -200,13 +234,21 @@ function sanitizeWeaponConfig(raw: unknown): WeaponConfig | null {
     indirectFire: false,
     sustainedHits: false,
     sustainedN: "1",
-    critHit: "6",
-    critWound: "6",
+    rapidFire: false,
+    rapidFireN: "",
+    melta: false,
+    meltaN: "",
+    blast: false,
+    critHit: "",
+    critWound: "",
     rerollHits: "none",
     rerollWounds: "none",
-    halfRange: false,
+    lance: false,
     lanceCharged: false,
+    heavy: false,
     heavyStationary: false,
+    halfRange: false,
+    ignoresCover: false,
     ...(raw as Partial<WeaponConfig>),
   };
 }
@@ -318,7 +360,10 @@ export function Calculator({ savedLists }: Props) {
       ? buildEffectiveDefender(defenderConfig, defenderBase)
       : null;
 
-  function setDefField<K extends keyof DefenderConfig>(key: K, value: string) {
+  function setDefField<K extends keyof DefenderConfig>(
+    key: K,
+    value: DefenderConfig[K],
+  ) {
     setDefenderConfig((c) => (c ? { ...c, [key]: value } : null));
   }
 
@@ -338,18 +383,16 @@ export function Calculator({ savedLists }: Props) {
       .split(",")
       .map((k) => k.trim())
       .filter(Boolean);
-    const rfKw = kws.find((k) => /^RAPID FIRE \d+$/.test(k));
-    const meltaKw = kws.find((k) => /^MELTA \d+$/.test(k));
     return {
-      rapidFireX: rfKw ? parseInt(rfKw.split(" ")[2]) : 0,
-      meltaX: meltaKw ? parseInt(meltaKw.split(" ")[1]) : 0,
+      hasRapidFire: kws.some((k) => /^RAPID FIRE \d+$/.test(k)),
+      hasMelta: kws.some((k) => /^MELTA \d+$/.test(k)),
       hasBlast: kws.includes("BLAST"),
     };
   }, [selectedWeapon]);
 
   const calcOpts = useMemo<CalcOptions | null>(() => {
     if (!weaponConfig) return null;
-    const blastBonus = weaponKwInfo.hasBlast
+    const blastBonus = weaponConfig.blast
       ? Math.floor((defenderUnit?.modelCount ?? 0) / 5)
       : 0;
     return {
@@ -364,16 +407,17 @@ export function Calculator({ savedLists }: Props) {
       rerollHits: weaponConfig.rerollHits,
       rerollWounds: weaponConfig.rerollWounds,
       rapidFireBonus:
-        weaponConfig.halfRange && weaponKwInfo.rapidFireX > 0
-          ? weaponKwInfo.rapidFireX
+        weaponConfig.halfRange && weaponConfig.rapidFire
+          ? parseInt(weaponConfig.rapidFireN) || 0
           : 0,
       meltaBonus:
-        weaponConfig.halfRange && weaponKwInfo.meltaX > 0
-          ? weaponKwInfo.meltaX
+        weaponConfig.halfRange && weaponConfig.melta
+          ? parseInt(weaponConfig.meltaN) || 0
           : 0,
       blastBonus,
+      benefitOfCover: defenderConfig?.cover ?? false,
     };
-  }, [weaponConfig, weaponKwInfo, defenderUnit]);
+  }, [weaponConfig, defenderUnit, defenderConfig]);
 
   const result = useMemo<CombatResult | null>(() => {
     if (
@@ -460,6 +504,46 @@ export function Calculator({ savedLists }: Props) {
     calcOpts,
     result,
   ]);
+
+  const derived = useMemo(() => {
+    if (!result?.valid) return null;
+    return {
+      hitPct:
+        result.torrent || result.totalAttacks < 0.001
+          ? undefined
+          : Math.round((result.expectedHits / result.totalAttacks) * 100),
+      woundPct:
+        result.expectedHits < 0.001
+          ? undefined
+          : Math.round((result.expectedWounds / result.expectedHits) * 100),
+      savePct:
+        result.expectedWounds < 0.001
+          ? undefined
+          : Math.round(
+              (result.expectedWoundsAfterSave / result.expectedWounds) * 100,
+            ),
+      fnpPct:
+        result.fnpThresh !== null && result.expectedWoundsAfterSave >= 0.001
+          ? Math.round(
+              (result.expectedFinalWounds / result.expectedWoundsAfterSave) *
+                100,
+            )
+          : undefined,
+      roundsToKill:
+        defenderUnit != null && result.expectedModelsKilled > 0.001
+          ? (defenderUnit.modelCount ?? 1) / result.expectedModelsKilled
+          : null,
+      overkillPct:
+        defenderProfile && result.expectedDamage > 0.001
+          ? Math.round(
+              ((result.expectedDamage -
+                result.expectedModelsKilled * defenderProfile.W) /
+                result.expectedDamage) *
+                100,
+            )
+          : null,
+    };
+  }, [result, defenderUnit, defenderProfile]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -550,9 +634,19 @@ export function Calculator({ savedLists }: Props) {
         {weaponConfig && selectedWeapon && (
           <div className={styles.customize}>
             <div className={styles.customizeLabel}>
-              {attackerUnit!.modelCount
-                ? `${attackerUnit!.modelCount} models`
-                : "1 model"}
+              <span>
+                {attackerUnit!.modelCount
+                  ? `${attackerUnit!.modelCount} models`
+                  : "1 model"}
+              </span>
+              <button
+                className={styles.resetBtn}
+                onClick={() =>
+                  setWeaponConfig(initConfig(selectedWeapon!.weapon))
+                }
+              >
+                Reset
+              </button>
             </div>
 
             <div className={styles.statGrid}>
@@ -608,6 +702,7 @@ export function Calculator({ savedLists }: Props) {
                   className={styles.critInput}
                   value={weaponConfig.critHit}
                   onChange={(e) => setField("critHit", e.target.value)}
+                  placeholder="6"
                 />
                 <span>+</span>
               </label>
@@ -617,6 +712,7 @@ export function Calculator({ savedLists }: Props) {
                   className={styles.critInput}
                   value={weaponConfig.critWound}
                   onChange={(e) => setField("critWound", e.target.value)}
+                  placeholder="6"
                 />
                 <span>+</span>
               </label>
@@ -640,42 +736,108 @@ export function Calculator({ savedLists }: Props) {
                   {label}
                 </button>
               ))}
-              <button
-                className={styles.kwToggle}
-                data-active={weaponConfig.sustainedHits ? "" : undefined}
-                onClick={() =>
-                  setField("sustainedHits", !weaponConfig.sustainedHits)
-                }
-              >
-                Sustained
-              </button>
-              {weaponConfig.sustainedHits && (
-                <input
-                  className={styles.sustainedInput}
-                  type="text"
-                  value={weaponConfig.sustainedN}
-                  onChange={(e) => setField("sustainedN", e.target.value)}
-                  placeholder="N"
-                />
+              <span className={styles.kwGroup}>
+                <button
+                  className={styles.kwToggle}
+                  data-active={weaponConfig.sustainedHits ? "" : undefined}
+                  onClick={() =>
+                    setField("sustainedHits", !weaponConfig.sustainedHits)
+                  }
+                >
+                  Sustained
+                </button>
+                {weaponConfig.sustainedHits && (
+                  <input
+                    className={styles.sustainedInput}
+                    type="text"
+                    value={weaponConfig.sustainedN}
+                    onChange={(e) => setField("sustainedN", e.target.value)}
+                    placeholder="N"
+                  />
+                )}
+              </span>
+              {weaponKwInfo.hasRapidFire && (
+                <span className={styles.kwGroup}>
+                  <button
+                    className={styles.kwToggle}
+                    data-active={weaponConfig.rapidFire ? "" : undefined}
+                    onClick={() =>
+                      setField("rapidFire", !weaponConfig.rapidFire)
+                    }
+                  >
+                    Rapid Fire
+                  </button>
+                  {weaponConfig.rapidFire && (
+                    <input
+                      className={styles.sustainedInput}
+                      type="text"
+                      value={weaponConfig.rapidFireN}
+                      onChange={(e) => setField("rapidFireN", e.target.value)}
+                      placeholder="N"
+                    />
+                  )}
+                </span>
               )}
-              {(weaponKwInfo.rapidFireX > 0 || weaponKwInfo.meltaX > 0) && (
+              {weaponKwInfo.hasMelta && (
+                <span className={styles.kwGroup}>
+                  <button
+                    className={styles.kwToggle}
+                    data-active={weaponConfig.melta ? "" : undefined}
+                    onClick={() => setField("melta", !weaponConfig.melta)}
+                  >
+                    Melta
+                  </button>
+                  {weaponConfig.melta && (
+                    <input
+                      className={styles.sustainedInput}
+                      type="text"
+                      value={weaponConfig.meltaN}
+                      onChange={(e) => setField("meltaN", e.target.value)}
+                      placeholder="N"
+                    />
+                  )}
+                </span>
+              )}
+              {weaponKwInfo.hasBlast && (
+                <button
+                  className={styles.kwToggle}
+                  data-active={weaponConfig.blast ? "" : undefined}
+                  onClick={() => setField("blast", !weaponConfig.blast)}
+                >
+                  Blast
+                </button>
+              )}
+            </div>
+
+            <div className={styles.rerollRow}>
+              <span className={styles.rerollLabel}>Battle</span>
+              <div className={styles.rerollBtns}>
                 <button
                   className={styles.kwToggle}
                   data-active={weaponConfig.halfRange ? "" : undefined}
                   onClick={() => setField("halfRange", !weaponConfig.halfRange)}
                 >
                   Half range
-                  {weaponKwInfo.rapidFireX > 0
-                    ? ` +${weaponKwInfo.rapidFireX}A`
-                    : ""}
-                  {weaponKwInfo.meltaX > 0 ? ` +${weaponKwInfo.meltaX}D` : ""}
                 </button>
-              )}
-              {weaponKwInfo.hasBlast && defenderUnit && (
-                <span className={styles.blastNote}>
-                  Blast +{Math.floor((defenderUnit.modelCount ?? 0) / 5)}A
-                </span>
-              )}
+                <button
+                  className={styles.kwToggle}
+                  data-active={weaponConfig.lanceCharged ? "" : undefined}
+                  onClick={() =>
+                    setField("lanceCharged", !weaponConfig.lanceCharged)
+                  }
+                >
+                  Has Charged
+                </button>
+                <button
+                  className={styles.kwToggle}
+                  data-active={weaponConfig.heavyStationary ? "" : undefined}
+                  onClick={() =>
+                    setField("heavyStationary", !weaponConfig.heavyStationary)
+                  }
+                >
+                  Stayed Stationary
+                </button>
+              </div>
             </div>
 
             <div className={styles.rerollRow}>
@@ -783,43 +945,63 @@ export function Calculator({ savedLists }: Props) {
           </select>
         </div>
         {defenderConfig && (
-          <div className={styles.statGrid}>
-            <span className={styles.statHeader}>T</span>
-            <span className={styles.statHeader}>Sv+</span>
-            <span className={styles.statHeader}>W</span>
-            <span className={styles.statHeader}>Inv+</span>
-            <span className={styles.statHeader}>FNP+</span>
-            <input
-              className={styles.statInput}
-              value={defenderConfig.T}
-              onChange={(e) => setDefField("T", e.target.value)}
-              placeholder={defenderBase?.T ?? "—"}
-            />
-            <input
-              className={styles.statInput}
-              value={defenderConfig.Sv}
-              onChange={(e) => setDefField("Sv", e.target.value)}
-              placeholder={defenderBase?.Sv ?? "—"}
-            />
-            <input
-              className={styles.statInput}
-              value={defenderConfig.W}
-              onChange={(e) => setDefField("W", e.target.value)}
-              placeholder={defenderBase?.W ?? "—"}
-            />
-            <input
-              className={styles.statInput}
-              value={defenderConfig.inv}
-              onChange={(e) => setDefField("inv", e.target.value)}
-              placeholder={defenderBase?.inv || "—"}
-            />
-            <input
-              className={styles.statInput}
-              value={defenderConfig.fnp}
-              onChange={(e) => setDefField("fnp", e.target.value)}
-              placeholder={defenderBase?.fnp || "—"}
-            />
-          </div>
+          <>
+            <div className={styles.customizeLabel}>
+              <span>Override</span>
+              <button
+                className={styles.resetBtn}
+                onClick={() => setDefenderConfig(EMPTY_DEF)}
+              >
+                Reset
+              </button>
+            </div>
+            <div className={styles.statGrid}>
+              <span className={styles.statHeader}>T</span>
+              <span className={styles.statHeader}>Sv+</span>
+              <span className={styles.statHeader}>W</span>
+              <span className={styles.statHeader}>Inv+</span>
+              <span className={styles.statHeader}>FNP+</span>
+              <input
+                className={styles.statInput}
+                value={defenderConfig.T}
+                onChange={(e) => setDefField("T", e.target.value)}
+                placeholder={defenderBase?.T ?? "—"}
+              />
+              <input
+                className={styles.statInput}
+                value={defenderConfig.Sv}
+                onChange={(e) => setDefField("Sv", e.target.value)}
+                placeholder={defenderBase?.Sv ?? "—"}
+              />
+              <input
+                className={styles.statInput}
+                value={defenderConfig.W}
+                onChange={(e) => setDefField("W", e.target.value)}
+                placeholder={defenderBase?.W ?? "—"}
+              />
+              <input
+                className={styles.statInput}
+                value={defenderConfig.inv}
+                onChange={(e) => setDefField("inv", e.target.value)}
+                placeholder={defenderBase?.inv || "—"}
+              />
+              <input
+                className={styles.statInput}
+                value={defenderConfig.fnp}
+                onChange={(e) => setDefField("fnp", e.target.value)}
+                placeholder={defenderBase?.fnp || "—"}
+              />
+            </div>
+            <div className={styles.kwRow}>
+              <button
+                className={styles.kwToggle}
+                data-active={defenderConfig.cover ? "" : undefined}
+                onClick={() => setDefField("cover", !defenderConfig.cover)}
+              >
+                Benefit of Cover
+              </button>
+            </div>
+          </>
         )}
       </section>
 
@@ -834,11 +1016,16 @@ export function Calculator({ savedLists }: Props) {
               <div className={styles.breakdown}>
                 <ResultRow
                   label="Attacks"
-                  detail={attackDetail(
-                    attackerUnit!.modelCount ?? 1,
-                    selectedWeapon!.weapon.count,
-                    weaponConfig!.A || selectedWeapon!.weapon.A || '?',
-                  )}
+                  detail={
+                    attackDetail(
+                      attackerUnit!.modelCount ?? 1,
+                      selectedWeapon!.weapon.count,
+                      weaponConfig!.A || selectedWeapon!.weapon.A || "?",
+                    ) +
+                    (calcOpts?.blastBonus
+                      ? ` +${calcOpts.blastBonus} blast`
+                      : "")
+                  }
                   value={result.totalAttacks}
                   integer
                 />
@@ -851,12 +1038,14 @@ export function Calculator({ savedLists }: Props) {
                         selectedWeapon!.weapon[selectedWeapon!.skill] ||
                         "?"
                   }
+                  pct={derived?.hitPct}
                   value={result.expectedHits}
                   critValue={result.expectedCritHits}
                 />
                 <ResultRow
                   label="Wound"
                   detail={`${result.woundThresh}+`}
+                  pct={derived?.woundPct}
                   value={result.expectedWounds}
                   critValue={
                     result.devastatingWounds
@@ -871,12 +1060,14 @@ export function Calculator({ savedLists }: Props) {
                       ? "No save"
                       : `${result.effectiveSave}+`
                   }
+                  pct={derived?.savePct}
                   value={result.expectedWoundsAfterSave}
                 />
                 {result.fnpThresh !== null && (
                   <ResultRow
                     label="FNP"
                     detail={`${result.fnpThresh}+`}
+                    pct={derived?.fnpPct}
                     value={result.expectedFinalWounds}
                   />
                 )}
@@ -898,6 +1089,22 @@ export function Calculator({ savedLists }: Props) {
                   )}
                 </span>
               </div>
+
+              {(derived?.roundsToKill != null ||
+                derived?.overkillPct != null) && (
+                <div className={styles.extraStats}>
+                  {derived.roundsToKill != null && (
+                    <span className={styles.extraStat}>
+                      ~{derived.roundsToKill.toFixed(1)} turns to wipe
+                    </span>
+                  )}
+                  {derived.overkillPct != null && (
+                    <span className={styles.extraStat}>
+                      {derived.overkillPct}% wasted
+                    </span>
+                  )}
+                </div>
+              )}
 
               {hints.map((msg) => (
                 <div key={msg} className={styles.hint}>
@@ -924,12 +1131,14 @@ export function Calculator({ savedLists }: Props) {
 function ResultRow({
   label,
   detail,
+  pct,
   value,
   integer,
   critValue,
 }: {
   label: string;
   detail: string;
+  pct?: number;
   value: number;
   integer?: boolean;
   critValue?: number;
@@ -937,7 +1146,10 @@ function ResultRow({
   return (
     <div className={styles.row}>
       <span className={styles.rowLabel}>{label}</span>
-      <span className={styles.rowDetail}>{detail}</span>
+      <span className={styles.rowDetail}>
+        {detail}
+        {pct !== undefined && <span className={styles.rowPct}> · {pct}%</span>}
+      </span>
       <span className={styles.rowArrow}>→</span>
       <span className={styles.rowValue}>
         {integer ? Math.round(value) : value.toFixed(2)}
@@ -953,6 +1165,7 @@ function KeywordBadges({ result }: { result: CombatResult }) {
   const active = [
     result.torrent && "Torrent",
     result.benefitOfCover && "Cover",
+    result.ignoresCover && "Ignores Cover",
     result.lance && "Lance",
     result.heavy && "Heavy",
     result.rapidFireBonus > 0 && `Rapid Fire +${result.rapidFireBonus}A`,
