@@ -24,6 +24,7 @@ export interface CalcOptions {
   meltaBonus?: number;      // extra damage from Melta X at half range
   blastBonus?: number;      // extra attacks from Blast (floor(models / 5))
   benefitOfCover?: boolean; // manual cover toggle (stacks with indirect auto-cover)
+  woundPenaltyIfSGtT?: boolean; // −1 to wound roll when S > T
 }
 
 export interface CombatResult {
@@ -333,7 +334,9 @@ export function calcCombat(
 
   const wThreshBase = isNaN(S) ? 4 : woundThreshold(S, defender.T);
   // Lance: +1 to wound roll when bearer charged (threshold −1, floor at 2+)
-  const wThresh = lance ? Math.max(2, wThreshBase - 1) : wThreshBase;
+  // woundPenaltyIfSGtT: −1 to wound roll when S > T (threshold +1, cap at 6)
+  const woundPenalty = (options?.woundPenaltyIfSGtT && !isNaN(S) && S > defender.T) ? 1 : 0;
+  const wThresh = Math.min(6, (lance ? Math.max(2, wThreshBase - 1) : wThreshBase) + woundPenalty);
   const pWoundBase = Math.max(0, (7 - wThresh) / 6);
 
   // Twin-linked = reroll wound 1s; if user hasn't picked a reroll type, apply it

@@ -1,0 +1,228 @@
+@use "./shared" as shared;
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0.75rem 0.75rem 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+// ── Section card ──────────────────────────────────────────────────────────────
+
+.section {
+  background: var(--card);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sectionTitle {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+// ── Selects ───────────────────────────────────────────────────────────────────
+
+.selects {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.select {
+  @include shared.select-base;
+}
+
+// ── Attacker meta ─────────────────────────────────────────────────────────────
+
+.meta {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--txt3);
+  line-height: 1.5;
+}
+
+.addWeaponBtn {
+  @include shared.btn-base;
+  align-self: flex-start;
+  padding: 0.2rem 0.5rem;
+  border: 0.0625rem dashed var(--border);
+  transition:
+    color 0.1s,
+    border-color 0.1s;
+
+  &:hover {
+    color: var(--txt2);
+    border-color: var(--txt3);
+  }
+}
+
+// ── Defender override form ────────────────────────────────────────────────────
+
+.customizeLabel {
+  @include shared.customize-label;
+}
+
+.resetBtn {
+  @include shared.reset-btn;
+}
+
+.statGrid {
+  @include shared.stat-grid;
+}
+
+.statHeader {
+  @include shared.stat-header;
+}
+
+.statInput {
+  @include shared.stat-input;
+}
+
+.kwRow {
+  @include shared.kw-row;
+}
+
+.kwToggle {
+  @include shared.kw-toggle;
+}
+
+// ── Result breakdown ──────────────────────────────────────────────────────────
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+}
+
+// ── Total ─────────────────────────────────────────────────────────────────────
+
+.total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 0.125rem solid var(--accent);
+}
+
+.totalLabel {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt2);
+}
+
+.totalValue {
+  font-family: var(--fm);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.totalOf {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--txt3);
+}
+
+.extraStats {
+  font-family: var(--fm);
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--txt3);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.1875rem;
+}
+
+// ── Multi-weapon results ──────────────────────────────────────────────────────
+
+.resultBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 0.0625rem solid var(--border);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.resultWeaponLabel {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--txt2);
+}
+
+.weaponKills {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 0.25rem;
+}
+
+.weaponKillsLabel {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt3);
+}
+
+.weaponKillsValue {
+  font-family: var(--fm);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--txt2);
+}
+
+// ── Hint ──────────────────────────────────────────────────────────────────────
+
+.hint {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 0.0625rem solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 0.25rem;
+  padding: 0.3rem 0.5rem;
+}
+
+// ── Invalid / empty ───────────────────────────────────────────────────────────
+
+.invalid,
+.empty {
+  font-family: var(--fm);
+  font-size: 0.625rem;
+}
+
+.invalid {
+  color: var(--melee);
+}
+
+.empty {
+  color: var(--txt3);
+  text-align: center;
+  padding: 2rem 1rem;
+}

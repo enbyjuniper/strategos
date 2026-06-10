@@ -1,0 +1,141 @@
+// Shared SCSS mixins for Calculator sub-components.
+// These replace the %placeholder selectors that were in Calculator.module.scss.
+
+@mixin input-base {
+  background: var(--bg);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--txt);
+  font-family: var(--fm);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: center;
+  transition: border-color 0.1s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+}
+
+@mixin kw-item {
+  color: var(--txt2);
+  font-family: var(--ff);
+  padding: 0 0.4375rem;
+  border: 0.0625rem solid var(--border);
+  height: 1.1rem;
+  box-sizing: border-box;
+  border-radius: 0.25rem;
+  font-size: 0.5rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+@mixin btn-base {
+  font-family: var(--ff);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--txt3);
+  cursor: pointer;
+}
+
+// Shared select styling used by both Calculator and WeaponSlotPanel
+@mixin select-base {
+  width: 100%;
+  background: var(--panel);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.25rem;
+  color: var(--txt);
+  font-family: var(--ff);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7fa0'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.5rem;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  option {
+    background: var(--panel);
+    color: var(--txt);
+  }
+}
+
+// Shared override-form atoms used by both Calculator (defender) and WeaponSlotPanel (weapon)
+@mixin customize-label {
+  font-family: var(--fm);
+  font-size: 0.5625rem;
+  color: var(--txt3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@mixin reset-btn {
+  @include btn-base;
+  padding: 0.15rem 0.375rem;
+  border: 0.0625rem solid var(--border);
+  transition:
+    color 0.1s,
+    border-color 0.1s;
+
+  &:hover {
+    color: var(--txt2);
+    border-color: var(--txt3);
+  }
+}
+
+@mixin stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+}
+
+@mixin stat-header {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  text-align: center;
+}
+
+@mixin stat-input {
+  @include input-base;
+  width: 100%;
+  min-width: 0;
+  padding: 0.3rem 0.1875rem;
+}
+
+@mixin kw-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+@mixin kw-toggle {
+  @include btn-base;
+  @include kw-item;
+  transition:
+    background 0.1s,
+    color 0.1s,
+    border-color 0.1s;
+
+  &[data-active] {
+    background: color-mix(in srgb, var(--shoot) 15%, transparent);
+    color: var(--shoot);
+    border-color: color-mix(in srgb, var(--shoot) 40%, transparent);
+  }
+}
